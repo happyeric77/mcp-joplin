@@ -1,17 +1,18 @@
 #!/usr/bin/env node
+import { Command } from 'commander';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
-  ListToolsRequestSchema,
   CallToolRequestSchema,
   CallToolResult,
   ListResourcesRequestSchema,
+  ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { JoplinClient, JoplinApiError, JoplinNote } from './joplin-client.js';
-import { Command } from 'commander';
+
 import { version } from '../package.json';
+import { JoplinApiError, JoplinClient, JoplinNote } from './joplin-client.js';
 
 // Global Joplin client instance
 let joplinClient: JoplinClient;
@@ -68,7 +69,8 @@ class JoplinMcpServer {
                 },
                 limit: {
                   type: 'number',
-                  description: 'Maximum number of results to return (default: 20)',
+                  description:
+                    'Maximum number of results to return (default: 20)',
                   default: 20,
                 },
               },
@@ -109,7 +111,8 @@ class JoplinMcpServer {
                 },
                 limit: {
                   type: 'number',
-                  description: 'Maximum number of results to return (default: 50)',
+                  description:
+                    'Maximum number of results to return (default: 50)',
                   default: 50,
                 },
               },
@@ -118,13 +121,15 @@ class JoplinMcpServer {
           },
           {
             name: 'list_sub_notebooks',
-            description: 'List sub-notebooks (child folders) in a specific notebook',
+            description:
+              'List sub-notebooks (child folders) in a specific notebook',
             inputSchema: {
               type: 'object',
               properties: {
                 parentNotebookId: {
                   type: 'string',
-                  description: 'The ID of the parent notebook to list sub-notebooks from',
+                  description:
+                    'The ID of the parent notebook to list sub-notebooks from',
                 },
               },
               required: ['parentNotebookId'],
@@ -146,7 +151,8 @@ class JoplinMcpServer {
                 },
                 notebookId: {
                   type: 'string',
-                  description: 'The ID of the notebook to create the note in (optional)',
+                  description:
+                    'The ID of the notebook to create the note in (optional)',
                 },
               },
               required: ['title', 'body'],
@@ -164,7 +170,8 @@ class JoplinMcpServer {
                 },
                 parentId: {
                   type: 'string',
-                  description: 'The ID of the parent notebook (optional, for sub-notebooks)',
+                  description:
+                    'The ID of the parent notebook (optional, for sub-notebooks)',
                 },
               },
               required: ['title'],
@@ -182,7 +189,8 @@ class JoplinMcpServer {
                 },
                 permanent: {
                   type: 'boolean',
-                  description: 'Whether to permanently delete the note (default: false, moves to trash)',
+                  description:
+                    'Whether to permanently delete the note (default: false, moves to trash)',
                   default: false,
                 },
               },
@@ -201,7 +209,8 @@ class JoplinMcpServer {
                 },
                 permanent: {
                   type: 'boolean',
-                  description: 'Whether to permanently delete the notebook (default: false, moves to trash)',
+                  description:
+                    'Whether to permanently delete the notebook (default: false, moves to trash)',
                   default: false,
                 },
               },
@@ -228,29 +237,31 @@ class JoplinMcpServer {
           },
           {
             name: 'scan_unchecked_items',
-            description: 'Scan a notebook and its sub-notebooks for unchecked items: both markdown todo items (- [ ]) and uncompleted Joplin todo notes',
+            description:
+              'Scan a notebook and its sub-notebooks for unchecked items: both markdown todo items (- [ ]) and uncompleted Joplin todo notes',
             inputSchema: {
               type: 'object',
               properties: {
                 notebook_id: {
                   type: 'string',
-                  description: 'The ID of the notebook to scan'
+                  description: 'The ID of the notebook to scan',
                 },
                 include_sub_notebooks: {
                   type: 'boolean',
-                  description: 'Whether to include sub-notebooks in the scan (default: true)',
-                  default: true
-                }
+                  description:
+                    'Whether to include sub-notebooks in the scan (default: true)',
+                  default: true,
+                },
               },
-              required: ['notebook_id']
-            }
-          }
+              required: ['notebook_id'],
+            },
+          },
         ],
       };
     });
 
     // Handle tool calls
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    this.server.setRequestHandler(CallToolRequestSchema, async request => {
       const { name, arguments: args } = request.params;
 
       try {
@@ -261,7 +272,10 @@ class JoplinMcpServer {
             return await this.getNoteContent(typedArgs.noteId as string);
 
           case 'search_notes':
-            return await this.searchNotes(typedArgs.query as string, typedArgs.limit as number);
+            return await this.searchNotes(
+              typedArgs.query as string,
+              typedArgs.limit as number
+            );
 
           case 'search_notebooks':
             return await this.searchNotebooks(typedArgs.query as string);
@@ -270,36 +284,61 @@ class JoplinMcpServer {
             return await this.listNotebooks();
 
           case 'list_notes':
-            return await this.listNotes(typedArgs.notebookId as string, typedArgs.limit as number);
+            return await this.listNotes(
+              typedArgs.notebookId as string,
+              typedArgs.limit as number
+            );
 
           case 'list_sub_notebooks':
-            return await this.listSubNotebooks(typedArgs.parentNotebookId as string);
+            return await this.listSubNotebooks(
+              typedArgs.parentNotebookId as string
+            );
 
           case 'create_note':
-            return await this.createNote(typedArgs.title as string, typedArgs.body as string, typedArgs.notebookId as string);
+            return await this.createNote(
+              typedArgs.title as string,
+              typedArgs.body as string,
+              typedArgs.notebookId as string
+            );
 
           case 'create_notebook':
-            return await this.createNotebook(typedArgs.title as string, typedArgs.parentId as string);
+            return await this.createNotebook(
+              typedArgs.title as string,
+              typedArgs.parentId as string
+            );
 
           case 'delete_note':
-            return await this.deleteNote(typedArgs.noteId as string, typedArgs.permanent as boolean);
+            return await this.deleteNote(
+              typedArgs.noteId as string,
+              typedArgs.permanent as boolean
+            );
 
           case 'delete_notebook':
-            return await this.deleteNotebook(typedArgs.notebookId as string, typedArgs.permanent as boolean);
+            return await this.deleteNotebook(
+              typedArgs.notebookId as string,
+              typedArgs.permanent as boolean
+            );
 
           case 'move_note':
-            return await this.moveNote(typedArgs.noteId as string, typedArgs.targetNotebookId as string);
+            return await this.moveNote(
+              typedArgs.noteId as string,
+              typedArgs.targetNotebookId as string
+            );
 
           case 'scan_unchecked_items':
-            return await this.scanUncheckedItems(typedArgs.notebook_id as string, typedArgs.include_sub_notebooks as boolean);
+            return await this.scanUncheckedItems(
+              typedArgs.notebook_id as string,
+              typedArgs.include_sub_notebooks as boolean
+            );
 
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
       } catch (error) {
-        const errorMessage = error instanceof JoplinApiError
-          ? `Joplin API Error: ${error.message}`
-          : `Error: ${error instanceof Error ? error.message : String(error)}`;
+        const errorMessage =
+          error instanceof JoplinApiError
+            ? `Joplin API Error: ${error.message}`
+            : `Error: ${error instanceof Error ? error.message : String(error)}`;
 
         return {
           content: [
@@ -336,11 +375,11 @@ class JoplinMcpServer {
     });
 
     // Handle resource reads
-    this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    this.server.setRequestHandler(ReadResourceRequestSchema, async request => {
       const { uri } = request.params;
 
       switch (uri) {
-        case 'joplin://notebooks':
+        case 'joplin://notebooks': {
           const notebooks = await joplinClient.getNotebooks();
           return {
             contents: [
@@ -351,8 +390,9 @@ class JoplinMcpServer {
               },
             ],
           };
+        }
 
-        case 'joplin://notes':
+        case 'joplin://notes': {
           const notes = await joplinClient.getNotes();
           return {
             contents: [
@@ -363,6 +403,7 @@ class JoplinMcpServer {
               },
             ],
           };
+        }
 
         default:
           throw new Error(`Unknown resource: ${uri}`);
@@ -373,7 +414,7 @@ class JoplinMcpServer {
   // Tool implementation methods
   private async getNoteContent(noteId: string): Promise<CallToolResult> {
     const note = await joplinClient.getNote(noteId);
-    
+
     return {
       content: [
         {
@@ -384,13 +425,23 @@ class JoplinMcpServer {
     };
   }
 
-  private async searchNotes(query: string, limit: number = 20): Promise<CallToolResult> {
-    const results = await joplinClient.search(query, 'note', 'id,title,body,parent_id,updated_time');
+  private async searchNotes(
+    query: string,
+    limit: number = 20
+  ): Promise<CallToolResult> {
+    const results = await joplinClient.search(
+      query,
+      'note',
+      'id,title,body,parent_id,updated_time'
+    );
     const notes = results.items.slice(0, limit);
-    
-    const formattedResults = notes.map((note: any) => 
-      `**${note.title}** (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}\nPreview: ${note.body?.substring(0, 100)}...`
-    ).join('\n\n---\n\n');
+
+    const formattedResults = notes
+      .map(
+        (note: any) =>
+          `**${note.title}** (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}\nPreview: ${note.body?.substring(0, 100)}...`
+      )
+      .join('\n\n---\n\n');
 
     return {
       content: [
@@ -403,18 +454,21 @@ class JoplinMcpServer {
   }
 
   private async searchNotebooks(query: string): Promise<CallToolResult> {
-    // Due to limitations in Joplin's search API for folders, 
+    // Due to limitations in Joplin's search API for folders,
     // we'll fetch all notebooks and filter client-side
     const allNotebooks = await joplinClient.getNotebooks();
     const queryLower = query.toLowerCase();
-    
-    const matchingNotebooks = allNotebooks.filter(notebook => 
+
+    const matchingNotebooks = allNotebooks.filter(notebook =>
       notebook.title.toLowerCase().includes(queryLower)
     );
-    
-    const formattedResults = matchingNotebooks.map((notebook: any) => 
-      `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`
-    ).join('\n\n---\n\n');
+
+    const formattedResults = matchingNotebooks
+      .map(
+        (notebook: any) =>
+          `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`
+      )
+      .join('\n\n---\n\n');
 
     return {
       content: [
@@ -428,10 +482,13 @@ class JoplinMcpServer {
 
   private async listNotebooks(): Promise<CallToolResult> {
     const notebooks = await joplinClient.getNotebooks();
-    
-    const formattedList = notebooks.map(notebook => 
-      `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`
-    ).join('\n\n---\n\n');
+
+    const formattedList = notebooks
+      .map(
+        notebook =>
+          `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`
+      )
+      .join('\n\n---\n\n');
 
     return {
       content: [
@@ -443,16 +500,25 @@ class JoplinMcpServer {
     };
   }
 
-  private async listNotes(notebookId: string, limit: number = 50): Promise<CallToolResult> {
-    const results = await joplinClient.getNotesInNotebook(notebookId, { 
+  private async listNotes(
+    notebookId: string,
+    limit: number = 50
+  ): Promise<CallToolResult> {
+    const results = await joplinClient.getNotesInNotebook(notebookId, {
       fields: 'id,title,updated_time,is_todo,todo_completed',
-      limit 
+      limit,
     });
-    
-    const formattedList = results.items.map((note: any) => {
-      const todoStatus = note.is_todo ? (note.todo_completed ? ' ✅' : ' ☐') : '';
-      return `**${note.title}**${todoStatus} (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}`;
-    }).join('\n\n---\n\n');
+
+    const formattedList = results.items
+      .map((note: any) => {
+        const todoStatus = note.is_todo
+          ? note.todo_completed
+            ? ' ✅'
+            : ' ☐'
+          : '';
+        return `**${note.title}**${todoStatus} (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}`;
+      })
+      .join('\n\n---\n\n');
 
     return {
       content: [
@@ -464,15 +530,20 @@ class JoplinMcpServer {
     };
   }
 
-  private async listSubNotebooks(parentNotebookId: string): Promise<CallToolResult> {
+  private async listSubNotebooks(
+    parentNotebookId: string
+  ): Promise<CallToolResult> {
     const allNotebooks = await joplinClient.getNotebooks();
-    const subNotebooks = allNotebooks.filter(notebook => 
-      notebook.parent_id === parentNotebookId
+    const subNotebooks = allNotebooks.filter(
+      notebook => notebook.parent_id === parentNotebookId
     );
-    
-    const formattedList = subNotebooks.map(notebook => 
-      `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`
-    ).join('\n\n---\n\n');
+
+    const formattedList = subNotebooks
+      .map(
+        notebook =>
+          `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`
+      )
+      .join('\n\n---\n\n');
 
     return {
       content: [
@@ -484,14 +555,18 @@ class JoplinMcpServer {
     };
   }
 
-  private async createNote(title: string, body: string, notebookId?: string): Promise<CallToolResult> {
+  private async createNote(
+    title: string,
+    body: string,
+    notebookId?: string
+  ): Promise<CallToolResult> {
     const noteData: any = { title, body };
     if (notebookId) {
       noteData.parent_id = notebookId;
     }
 
     const note = await joplinClient.createNote(noteData);
-    
+
     return {
       content: [
         {
@@ -502,14 +577,17 @@ class JoplinMcpServer {
     };
   }
 
-  private async createNotebook(title: string, parentId?: string): Promise<CallToolResult> {
+  private async createNotebook(
+    title: string,
+    parentId?: string
+  ): Promise<CallToolResult> {
     const notebookData: any = { title };
     if (parentId) {
       notebookData.parent_id = parentId;
     }
 
     const notebook = await joplinClient.createNotebook(notebookData);
-    
+
     return {
       content: [
         {
@@ -520,9 +598,12 @@ class JoplinMcpServer {
     };
   }
 
-  private async deleteNote(noteId: string, permanent: boolean = false): Promise<CallToolResult> {
+  private async deleteNote(
+    noteId: string,
+    permanent: boolean = false
+  ): Promise<CallToolResult> {
     await joplinClient.deleteNote(noteId, permanent);
-    
+
     const action = permanent ? 'permanently deleted' : 'moved to trash';
     return {
       content: [
@@ -534,9 +615,12 @@ class JoplinMcpServer {
     };
   }
 
-  private async deleteNotebook(notebookId: string, permanent: boolean = false): Promise<CallToolResult> {
+  private async deleteNotebook(
+    notebookId: string,
+    permanent: boolean = false
+  ): Promise<CallToolResult> {
     await joplinClient.deleteNotebook(notebookId, permanent);
-    
+
     const action = permanent ? 'permanently deleted' : 'moved to trash';
     return {
       content: [
@@ -548,9 +632,12 @@ class JoplinMcpServer {
     };
   }
 
-  private async moveNote(noteId: string, targetNotebookId: string): Promise<CallToolResult> {
+  private async moveNote(
+    noteId: string,
+    targetNotebookId: string
+  ): Promise<CallToolResult> {
     await joplinClient.updateNote(noteId, { parent_id: targetNotebookId });
-    
+
     return {
       content: [
         {
@@ -561,10 +648,13 @@ class JoplinMcpServer {
     };
   }
 
-  private async scanUncheckedItems(notebookId: string, includeSubNotebooks: boolean = true): Promise<CallToolResult> {
+  private async scanUncheckedItems(
+    notebookId: string,
+    includeSubNotebooks: boolean = true
+  ): Promise<CallToolResult> {
     const allNotebooks = await joplinClient.getNotebooks();
     const targetNotebook = allNotebooks.find(nb => nb.id === notebookId);
-    
+
     if (!targetNotebook) {
       return {
         content: [
@@ -594,7 +684,10 @@ class JoplinMcpServer {
     // Get notebooks to scan
     const notebooksToScan = [targetNotebook];
     if (includeSubNotebooks) {
-      const subNotebooks = this.getSubNotebooksRecursively(allNotebooks, notebookId);
+      const subNotebooks = this.getSubNotebooksRecursively(
+        allNotebooks,
+        notebookId
+      );
       notebooksToScan.push(...subNotebooks);
     }
 
@@ -604,8 +697,10 @@ class JoplinMcpServer {
 
     for (const notebook of notebooksToScan) {
       // Get notes in this notebook
-      const notesInNotebook = allNotes.filter(note => note.parent_id === notebook.id);
-      
+      const notesInNotebook = allNotes.filter(
+        note => note.parent_id === notebook.id
+      );
+
       for (const note of notesInNotebook) {
         // Check if it's an uncompleted todo note
         if (note.is_todo === 1 && note.todo_completed === 0) {
@@ -613,31 +708,34 @@ class JoplinMcpServer {
             notebookTitle: notebook.title,
             noteTitle: note.title,
             noteId: note.id,
-            updatedTime: new Date(note.updated_time).toLocaleString()
+            updatedTime: new Date(note.updated_time).toLocaleString(),
           });
         }
 
         // Get full note content to check for markdown todo items
         const fullNote = await joplinClient.getNote(note.id, 'title,body');
-        
+
         // Find unchecked markdown items (- [ ])
         const uncheckedMatches = fullNote.body.match(/^- \[ \].*/gm);
-        
+
         if (uncheckedMatches && uncheckedMatches.length > 0) {
           uncheckedMarkdownItems.push({
             notebookTitle: notebook.title,
             noteTitle: fullNote.title,
             noteId: fullNote.id,
-            uncheckedItems: uncheckedMatches
+            uncheckedItems: uncheckedMatches,
           });
         }
       }
     }
 
     // Format results
-    const totalMarkdownItems = uncheckedMarkdownItems.reduce((total, item) => total + item.uncheckedItems.length, 0);
+    const totalMarkdownItems = uncheckedMarkdownItems.reduce(
+      (total, item) => total + item.uncheckedItems.length,
+      0
+    );
     const totalTodoNotes = uncompletedTodos.length;
-    
+
     if (totalMarkdownItems === 0 && totalTodoNotes === 0) {
       return {
         content: [
@@ -658,10 +756,12 @@ class JoplinMcpServer {
     // Add uncompleted todo notes section
     if (uncompletedTodos.length > 0) {
       details += '## 📝 Uncompleted Todo Notes\n\n';
-      details += uncompletedTodos.map(todo => {
-        return `**📓 ${todo.notebookTitle} → ☐ ${todo.noteTitle}** (ID: ${todo.noteId})\nUpdated: ${todo.updatedTime}`;
-      }).join('\n\n---\n\n');
-      
+      details += uncompletedTodos
+        .map(todo => {
+          return `**📓 ${todo.notebookTitle} → ☐ ${todo.noteTitle}** (ID: ${todo.noteId})\nUpdated: ${todo.updatedTime}`;
+        })
+        .join('\n\n---\n\n');
+
       if (uncheckedMarkdownItems.length > 0) {
         details += '\n\n';
       }
@@ -670,10 +770,14 @@ class JoplinMcpServer {
     // Add markdown todo items section
     if (uncheckedMarkdownItems.length > 0) {
       details += '## ✓ Unchecked Markdown Items\n\n';
-      details += uncheckedMarkdownItems.map(item => {
-        const itemList = item.uncheckedItems.map(unchecked => `  ${unchecked}`).join('\n');
-        return `**📓 ${item.notebookTitle} → 📝 ${item.noteTitle}** (ID: ${item.noteId})\n${itemList}`;
-      }).join('\n\n---\n\n');
+      details += uncheckedMarkdownItems
+        .map(item => {
+          const itemList = item.uncheckedItems
+            .map(unchecked => `  ${unchecked}`)
+            .join('\n');
+          return `**📓 ${item.notebookTitle} → 📝 ${item.noteTitle}** (ID: ${item.noteId})\n${itemList}`;
+        })
+        .join('\n\n---\n\n');
     }
 
     return {
@@ -686,17 +790,23 @@ class JoplinMcpServer {
     };
   }
 
-  private getSubNotebooksRecursively(allNotebooks: any[], parentId: string): any[] {
+  private getSubNotebooksRecursively(
+    allNotebooks: any[],
+    parentId: string
+  ): any[] {
     const subNotebooks: any[] = [];
     const directChildren = allNotebooks.filter(nb => nb.parent_id === parentId);
-    
+
     for (const child of directChildren) {
       subNotebooks.push(child);
       // Recursively get sub-notebooks
-      const grandChildren = this.getSubNotebooksRecursively(allNotebooks, child.id);
+      const grandChildren = this.getSubNotebooksRecursively(
+        allNotebooks,
+        child.id
+      );
       subNotebooks.push(...grandChildren);
     }
-    
+
     return subNotebooks;
   }
 
@@ -706,9 +816,12 @@ class JoplinMcpServer {
   }
 }
 
-async function initializeJoplinClient(token?: string, port?: number): Promise<void> {
+async function initializeJoplinClient(
+  token?: string,
+  port?: number
+): Promise<void> {
   let actualPort = port;
-  
+
   try {
     // Try to auto-discover if no port specified
     if (!port) {
@@ -716,22 +829,28 @@ async function initializeJoplinClient(token?: string, port?: number): Promise<vo
       const discovery = await tempClient.autoDiscover();
       actualPort = discovery.port;
     }
-    
+
     joplinClient = new JoplinClient({ token, port: actualPort });
 
     // Test the connection
     await joplinClient.ping();
     console.error(`Connected to Joplin on port ${actualPort || 41184}`);
   } catch (error) {
-    console.error(`Failed to connect to Joplin: ${error instanceof Error ? error.message : String(error)}`);
-    console.error('Make sure Joplin is running and Web Clipper service is enabled');
+    console.error(
+      `Failed to connect to Joplin: ${error instanceof Error ? error.message : String(error)}`
+    );
+    console.error(
+      'Make sure Joplin is running and Web Clipper service is enabled'
+    );
     process.exit(1);
   }
 }
 
 async function main() {
   const token = process.env.JOPLIN_TOKEN;
-  const port = process.env.JOPLIN_PORT ? parseInt(process.env.JOPLIN_PORT) : undefined;
+  const port = process.env.JOPLIN_PORT
+    ? parseInt(process.env.JOPLIN_PORT)
+    : undefined;
 
   await initializeJoplinClient(token, port);
 
@@ -755,7 +874,7 @@ program
 
 // Run if this file is executed directly
 if (require.main === module) {
-  main().catch((error) => {
+  main().catch(error => {
     console.error('Server error:', error);
     process.exit(1);
   });

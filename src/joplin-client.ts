@@ -69,7 +69,7 @@ export class JoplinClient {
     const port = options.port || 41184;
     this.baseUrl = options.baseUrl || `http://localhost:${port}`;
     this.token = options.token || '';
-    
+
     this.client = axios.create({
       baseURL: this.baseUrl,
       timeout: 30000,
@@ -79,7 +79,7 @@ export class JoplinClient {
     });
 
     // Add token to all requests
-    this.client.interceptors.request.use((config) => {
+    this.client.interceptors.request.use(config => {
       if (this.token) {
         config.params = { ...config.params, token: this.token };
       }
@@ -88,8 +88,8 @@ export class JoplinClient {
 
     // Error handling interceptor
     this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
+      response => response,
+      error => {
         if (error.response) {
           throw new JoplinApiError(
             error.response.data?.error || error.message,
@@ -106,15 +106,19 @@ export class JoplinClient {
   async autoDiscover(): Promise<{ port: number; token?: string }> {
     for (let port = 41184; port <= 41194; port++) {
       try {
-        const response = await axios.get(`http://localhost:${port}/ping`, { timeout: 5000 });
+        const response = await axios.get(`http://localhost:${port}/ping`, {
+          timeout: 5000,
+        });
         if (response.data === 'JoplinClipperServer') {
           return { port };
         }
-      } catch (error) {
+      } catch {
         // Continue to next port
       }
     }
-    throw new JoplinApiError('Joplin Web Clipper service not found. Make sure Joplin is running and Web Clipper is enabled.');
+    throw new JoplinApiError(
+      'Joplin Web Clipper service not found. Make sure Joplin is running and Web Clipper is enabled.'
+    );
   }
 
   setToken(token: string): void {
@@ -128,18 +132,20 @@ export class JoplinClient {
   }
 
   // Notes API
-  async getNotes(options: { fields?: string; page?: number; limit?: number } = {}): Promise<JoplinSearchResult> {
+  async getNotes(
+    options: { fields?: string; page?: number; limit?: number } = {}
+  ): Promise<JoplinSearchResult> {
     const allNotes: JoplinNote[] = [];
     let page = 1;
     let hasMore = true;
-    
+
     while (hasMore) {
-      const response = await this.client.get('/notes', { 
-        params: { ...options, page } 
+      const response = await this.client.get('/notes', {
+        params: { ...options, page },
       });
       const data = response.data;
       const items = data.items || data;
-      
+
       if (Array.isArray(items) && items.length > 0) {
         allNotes.push(...items);
         hasMore = data.has_more === true;
@@ -147,24 +153,26 @@ export class JoplinClient {
       } else {
         hasMore = false;
       }
-      
+
       // Safety check to prevent infinite loops
       if (page > 50) {
         console.warn('Reached maximum page limit (50) while fetching notes');
         break;
       }
     }
-    
+
     return {
       items: allNotes,
-      has_more: false
+      has_more: false,
     };
   }
 
   async getNote(id: string, fields?: string): Promise<JoplinNote> {
     // Default to important fields if none specified or empty
-    const defaultFields = 'id,title,body,parent_id,created_time,updated_time,is_todo,todo_completed';
-    const actualFields = (fields !== undefined && fields !== '') ? fields : defaultFields;
+    const defaultFields =
+      'id,title,body,parent_id,created_time,updated_time,is_todo,todo_completed';
+    const actualFields =
+      fields !== undefined && fields !== '' ? fields : defaultFields;
     const params = { fields: actualFields };
     const response = await this.client.get(`/notes/${id}`, { params });
     return response.data;
@@ -190,12 +198,12 @@ export class JoplinClient {
     const allNotebooks: JoplinNotebook[] = [];
     let page = 1;
     let hasMore = true;
-    
+
     while (hasMore) {
       const response = await this.client.get('/folders', { params: { page } });
       const data = response.data;
       const items = data.items || data;
-      
+
       if (Array.isArray(items) && items.length > 0) {
         allNotebooks.push(...items);
         hasMore = data.has_more === true;
@@ -203,14 +211,16 @@ export class JoplinClient {
       } else {
         hasMore = false;
       }
-      
+
       // Safety check to prevent infinite loops
       if (page > 50) {
-        console.warn('Reached maximum page limit (50) while fetching notebooks');
+        console.warn(
+          'Reached maximum page limit (50) while fetching notebooks'
+        );
         break;
       }
     }
-    
+
     return allNotebooks;
   }
 
@@ -219,18 +229,21 @@ export class JoplinClient {
     return response.data;
   }
 
-  async getNotesInNotebook(notebookId: string, options: { fields?: string; page?: number; limit?: number } = {}): Promise<JoplinSearchResult> {
+  async getNotesInNotebook(
+    notebookId: string,
+    options: { fields?: string; page?: number; limit?: number } = {}
+  ): Promise<JoplinSearchResult> {
     const allNotes: JoplinNote[] = [];
     let page = 1;
     let hasMore = true;
-    
+
     while (hasMore) {
-      const response = await this.client.get(`/folders/${notebookId}/notes`, { 
-        params: { ...options, page } 
+      const response = await this.client.get(`/folders/${notebookId}/notes`, {
+        params: { ...options, page },
       });
       const data = response.data;
       const items = data.items || data;
-      
+
       if (Array.isArray(items) && items.length > 0) {
         allNotes.push(...items);
         hasMore = data.has_more === true;
@@ -238,26 +251,33 @@ export class JoplinClient {
       } else {
         hasMore = false;
       }
-      
+
       // Safety check to prevent infinite loops
       if (page > 50) {
-        console.warn('Reached maximum page limit (50) while fetching notes from notebook');
+        console.warn(
+          'Reached maximum page limit (50) while fetching notes from notebook'
+        );
         break;
       }
     }
-    
+
     return {
       items: allNotes,
-      has_more: false
+      has_more: false,
     };
   }
 
-  async createNotebook(notebook: Partial<JoplinNotebook>): Promise<JoplinNotebook> {
+  async createNotebook(
+    notebook: Partial<JoplinNotebook>
+  ): Promise<JoplinNotebook> {
     const response = await this.client.post('/folders', notebook);
     return response.data;
   }
 
-  async updateNotebook(id: string, notebook: Partial<JoplinNotebook>): Promise<JoplinNotebook> {
+  async updateNotebook(
+    id: string,
+    notebook: Partial<JoplinNotebook>
+  ): Promise<JoplinNotebook> {
     const response = await this.client.put(`/folders/${id}`, notebook);
     return response.data;
   }
@@ -268,11 +288,15 @@ export class JoplinClient {
   }
 
   // Search API
-  async search(query: string, type?: 'note' | 'folder' | 'tag', fields?: string): Promise<JoplinSearchResult> {
+  async search(
+    query: string,
+    type?: 'note' | 'folder' | 'tag',
+    fields?: string
+  ): Promise<JoplinSearchResult> {
     const params: any = { query };
     if (type) params.type = type;
     if (fields) params.fields = fields;
-    
+
     const response = await this.client.get('/search', { params });
     return response.data;
   }

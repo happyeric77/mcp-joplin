@@ -30,17 +30,14 @@ jobs:
     - name: Run TypeScript compilation
       run: npm run build
       
-    - name: Check for TypeScript errors
-      run: npx tsc --noEmit
+    - name: Check TypeScript types
+      run: npm run typecheck
       
-    - name: Run linting (if exists)
-      run: |
-        if npm run lint --silent 2>/dev/null; then
-          npm run lint
-        else
-          echo "No lint script found, skipping..."
-        fi
-      continue-on-error: true
+    - name: Check code formatting
+      run: npm run format:check
+      
+    - name: Run ESLint
+      run: npm run lint
       
     - name: Check package vulnerabilities
       run: npm audit --audit-level=high
