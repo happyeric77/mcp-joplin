@@ -11,6 +11,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { JoplinClient, JoplinApiError, JoplinNote } from './joplin-client.js';
 import { Command } from 'commander';
+import { version } from '../package.json';
 
 // Global Joplin client instance
 let joplinClient: JoplinClient;
@@ -22,7 +23,7 @@ class JoplinMcpServer {
     this.server = new Server(
       {
         name: 'mcp-joplin',
-        version: '1.0.0',
+        version: version,
       },
       {
         capabilities: {
@@ -743,7 +744,7 @@ const program = new Command();
 program
   .name('mcp-joplin')
   .description('MCP server for Joplin note-taking app')
-  .version('1.0.0');
+  .version(version);
 
 program
   .command('run')

@@ -1,6 +1,6 @@
 {
   "name": "mcp-joplin",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "MCP server for Joplin integration via Web Clipper API",
   "main": "dist/index.js",
   "bin": {
@@ -19,7 +19,7 @@
     "notes",
     "notebook"
   ],
-  "author": "Your Name",
+  "author": "Eric Lee",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.6.0",
@@ -35,4 +35,3 @@
     "node": ">=18.0.0"
   }
 }
-
