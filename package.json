@@ -4,7 +4,7 @@
   "description": "MCP server for Joplin integration via Web Clipper API",
   "main": "dist/index.js",
   "bin": {
-    "mcp-joplin": "dist/index.js"
+    "mcp-joplin": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
