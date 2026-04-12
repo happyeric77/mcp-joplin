@@ -10,14 +10,14 @@ export type { JoplinMcpContext } from './context.js';
 export { createJoplinMcpServer } from './server.js';
 export type { CreateServerOptions, CreatedServer } from './server.js';
 
-export { JoplinClient, JoplinApiError } from './joplin-client.js';
+export { JoplinClient, JoplinApiError } from './client/index.js';
 export type {
   JoplinNote,
   JoplinNotebook,
   JoplinTag,
   JoplinSearchResult,
   JoplinApiOptions,
-} from './joplin-client.js';
+} from './client/index.js';
 
 // Direct execution: delegate to CLI
 if (require.main === module) {

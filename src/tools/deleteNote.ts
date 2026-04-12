@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
-import { JoplinApiError } from '../joplin-client.js';
 
 export const registerDeleteNote = (
   server: McpServer,

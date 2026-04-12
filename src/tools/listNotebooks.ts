@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
-import { JoplinApiError } from '../joplin-client.js';
 
 export const registerListNotebooks = (
   server: McpServer,

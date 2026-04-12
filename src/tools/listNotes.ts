@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { JoplinApiError, JoplinNote } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
-import { JoplinApiError, JoplinNote } from '../joplin-client.js';
 
 const paramsSchema = {
   notebookId: z.string().describe('The ID of the notebook to list notes from'),

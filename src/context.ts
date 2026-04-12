@@ -1,5 +1,5 @@
+import { JoplinClient } from './client/index.js';
 import { JoplinMcpConfig } from './config.js';
-import { JoplinClient } from './joplin-client.js';
 
 export interface JoplinMcpContext {
   readonly client: JoplinClient;

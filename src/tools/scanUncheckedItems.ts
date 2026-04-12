@@ -2,12 +2,8 @@ import { z } from 'zod';
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { JoplinApiError, JoplinNote, JoplinNotebook } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
-import {
-  JoplinApiError,
-  JoplinNote,
-  JoplinNotebook,
-} from '../joplin-client.js';
 
 export const registerScanUncheckedItems = (
   server: McpServer,
