@@ -1,64 +1,14 @@
 import axios, { AxiosInstance } from 'axios';
 
-export interface JoplinNote {
-  id: string;
-  title: string;
-  body: string;
-  parent_id: string;
-  created_time: number;
-  updated_time: number;
-  is_todo: number;
-  todo_completed: number;
-  source_url?: string;
-  author?: string;
-  latitude?: number;
-  longitude?: number;
-  altitude?: number;
-  user_created_time: number;
-  user_updated_time: number;
-}
-
-export interface JoplinNotebook {
-  id: string;
-  title: string;
-  created_time: number;
-  updated_time: number;
-  user_created_time: number;
-  user_updated_time: number;
-  parent_id?: string;
-  children?: JoplinNotebook[];
-}
-
-export interface JoplinTag {
-  id: string;
-  title: string;
-  created_time: number;
-  updated_time: number;
-  user_created_time: number;
-  user_updated_time: number;
-}
-
-export interface JoplinSearchResult {
-  items: (JoplinNote | JoplinNotebook | JoplinTag)[];
-  has_more: boolean;
-}
-
-export interface JoplinApiOptions {
-  baseUrl?: string;
-  token?: string;
-  port?: number;
-}
-
-export class JoplinApiError extends Error {
-  constructor(
-    message: string,
-    public statusCode?: number,
-    public response?: any
-  ) {
-    super(message);
-    this.name = 'JoplinApiError';
-  }
-}
+import { JoplinApiError } from './errors.js';
+import { fetchAllPages } from './pagination.js';
+import {
+  JoplinApiOptions,
+  JoplinNote,
+  JoplinNotebook,
+  JoplinSearchResult,
+  JoplinTag,
+} from './types.js';
 
 export class JoplinClient {
   private client: AxiosInstance;
@@ -102,7 +52,9 @@ export class JoplinClient {
     );
   }
 
-  // Auto-discover Joplin Web Clipper port and token
+  // ── Connection ──────────────────────────────────────────────────────
+
+  /** Auto-discover Joplin Web Clipper port by scanning localhost ports. */
   async autoDiscover(): Promise<{ port: number; token?: string }> {
     for (let port = 41184; port <= 41194; port++) {
       try {
@@ -125,56 +77,33 @@ export class JoplinClient {
     this.token = token;
   }
 
-  // Test connection
+  /** Test the connection to the Joplin API. */
   async ping(): Promise<string> {
     const response = await this.client.get('/ping');
     return response.data;
   }
 
-  // Notes API
+  // ── Notes ───────────────────────────────────────────────────────────
+
   async getNotes(
     options: { fields?: string; page?: number; limit?: number } = {}
   ): Promise<JoplinSearchResult> {
-    const allNotes: JoplinNote[] = [];
-    let page = 1;
-    let hasMore = true;
-
-    while (hasMore) {
-      const response = await this.client.get('/notes', {
-        params: { ...options, page },
-      });
-      const data = response.data;
-      const items = data.items || data;
-
-      if (Array.isArray(items) && items.length > 0) {
-        allNotes.push(...items);
-        hasMore = data.has_more === true;
-        page++;
-      } else {
-        hasMore = false;
-      }
-
-      // Safety check to prevent infinite loops
-      if (page > 50) {
-        console.warn('Reached maximum page limit (50) while fetching notes');
-        break;
-      }
-    }
-
-    return {
-      items: allNotes,
-      has_more: false,
-    };
+    const items = await fetchAllPages<JoplinNote>(
+      this.client,
+      '/notes',
+      options
+    );
+    return { items, has_more: false };
   }
 
   async getNote(id: string, fields?: string): Promise<JoplinNote> {
-    // Default to important fields if none specified or empty
     const defaultFields =
       'id,title,body,parent_id,created_time,updated_time,is_todo,todo_completed';
     const actualFields =
       fields !== undefined && fields !== '' ? fields : defaultFields;
-    const params = { fields: actualFields };
-    const response = await this.client.get(`/notes/${id}`, { params });
+    const response = await this.client.get(`/notes/${id}`, {
+      params: { fields: actualFields },
+    });
     return response.data;
   }
 
@@ -193,35 +122,10 @@ export class JoplinClient {
     await this.client.delete(`/notes/${id}`, { params });
   }
 
-  // Notebooks (Folders) API
+  // ── Notebooks (Folders) ─────────────────────────────────────────────
+
   async getNotebooks(): Promise<JoplinNotebook[]> {
-    const allNotebooks: JoplinNotebook[] = [];
-    let page = 1;
-    let hasMore = true;
-
-    while (hasMore) {
-      const response = await this.client.get('/folders', { params: { page } });
-      const data = response.data;
-      const items = data.items || data;
-
-      if (Array.isArray(items) && items.length > 0) {
-        allNotebooks.push(...items);
-        hasMore = data.has_more === true;
-        page++;
-      } else {
-        hasMore = false;
-      }
-
-      // Safety check to prevent infinite loops
-      if (page > 50) {
-        console.warn(
-          'Reached maximum page limit (50) while fetching notebooks'
-        );
-        break;
-      }
-    }
-
-    return allNotebooks;
+    return fetchAllPages<JoplinNotebook>(this.client, '/folders');
   }
 
   async getNotebook(id: string): Promise<JoplinNotebook> {
@@ -233,38 +137,12 @@ export class JoplinClient {
     notebookId: string,
     options: { fields?: string; page?: number; limit?: number } = {}
   ): Promise<JoplinSearchResult> {
-    const allNotes: JoplinNote[] = [];
-    let page = 1;
-    let hasMore = true;
-
-    while (hasMore) {
-      const response = await this.client.get(`/folders/${notebookId}/notes`, {
-        params: { ...options, page },
-      });
-      const data = response.data;
-      const items = data.items || data;
-
-      if (Array.isArray(items) && items.length > 0) {
-        allNotes.push(...items);
-        hasMore = data.has_more === true;
-        page++;
-      } else {
-        hasMore = false;
-      }
-
-      // Safety check to prevent infinite loops
-      if (page > 50) {
-        console.warn(
-          'Reached maximum page limit (50) while fetching notes from notebook'
-        );
-        break;
-      }
-    }
-
-    return {
-      items: allNotes,
-      has_more: false,
-    };
+    const items = await fetchAllPages<JoplinNote>(
+      this.client,
+      `/folders/${notebookId}/notes`,
+      options
+    );
+    return { items, has_more: false };
   }
 
   async createNotebook(
@@ -287,13 +165,14 @@ export class JoplinClient {
     await this.client.delete(`/folders/${id}`, { params });
   }
 
-  // Search API
+  // ── Search ──────────────────────────────────────────────────────────
+
   async search(
     query: string,
     type?: 'note' | 'folder' | 'tag',
     fields?: string
   ): Promise<JoplinSearchResult> {
-    const params: any = { query };
+    const params: Record<string, string> = { query };
     if (type) params.type = type;
     if (fields) params.fields = fields;
 
@@ -301,7 +180,8 @@ export class JoplinClient {
     return response.data;
   }
 
-  // Tags API
+  // ── Tags ────────────────────────────────────────────────────────────
+
   async getTags(): Promise<JoplinTag[]> {
     const response = await this.client.get('/tags');
     return response.data.items || response.data;
