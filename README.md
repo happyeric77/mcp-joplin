@@ -7,6 +7,7 @@ A Model Context Protocol (MCP) server that integrates with Joplin notes, allowin
 - 🔍 **Search Functionality**: Search notes and notebooks
 - 📖 **Content Reading**: Get complete content of specific notes
 - 📝 **Creation Features**: Create new notes and notebooks
+- ✏️ **Update/Edit Features**: Update note content, append to notes, and rename notebooks
 - 🗑️ **Deletion Features**: Delete notes and notebooks (supports trash or permanent deletion)
 - 🔄 **Move Functionality**: Move notes to different notebooks
 - 📋 **List Functionality**: List all notebooks and notes within specific notebooks
@@ -76,6 +77,7 @@ npx . --port 41184
 Add the following configuration to your MCP client configuration file:
 
 #### 🔐 Configuration (API Token Required)
+
 This MCP server requires a Joplin API token to function properly:
 
 ```json
@@ -100,7 +102,9 @@ This MCP server requires a Joplin API token to function properly:
 ### Claude Desktop Configuration Example
 
 #### Claude Desktop Configuration
+
 In `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
@@ -119,33 +123,43 @@ In `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ## Available MCP Tools
 
 ### 1. get_note_content
+
 Get the complete content of a specific note
+
 ```
 Parameters: noteId (string) - The ID of the note
 ```
 
 ### 2. search_notes
+
 Search for notes
+
 ```
-Parameters: 
+Parameters:
 - query (string) - Search keywords
 - limit (number, optional) - Result limit (default: 20)
 ```
 
 ### 3. search_notebooks
+
 Search for notebooks
+
 ```
 Parameters: query (string) - Search keywords
 ```
 
 ### 4. list_notebooks
+
 List all notebooks
+
 ```
 Parameters: None
 ```
 
 ### 5. list_notes
+
 List notes in a specific notebook
+
 ```
 Parameters:
 - notebookId (string) - The ID of the notebook
@@ -153,14 +167,18 @@ Parameters:
 ```
 
 ### 5.1. list_sub_notebooks
+
 List sub-notebooks within a specific notebook
+
 ```
 Parameters:
 - parentNotebookId (string) - The ID of the parent notebook
 ```
 
 ### 6. create_note
+
 Create a new note
+
 ```
 Parameters:
 - title (string) - Note title
@@ -169,7 +187,9 @@ Parameters:
 ```
 
 ### 7. create_notebook
+
 Create a new notebook
+
 ```
 Parameters:
 - title (string) - Notebook title
@@ -177,7 +197,9 @@ Parameters:
 ```
 
 ### 8. delete_note
+
 Delete a note
+
 ```
 Parameters:
 - noteId (string) - ID of the note to delete
@@ -185,7 +207,9 @@ Parameters:
 ```
 
 ### 9. delete_notebook
+
 Delete a notebook
+
 ```
 Parameters:
 - notebookId (string) - ID of the notebook to delete
@@ -193,27 +217,73 @@ Parameters:
 ```
 
 ### 10. move_note
+
 Move a note to a different notebook
+
 ```
 Parameters:
 - noteId (string) - ID of the note to move
 - targetNotebookId (string) - Target notebook ID
 ```
 
-### 11. list_sub_notebooks
-List sub-notebooks within a specific notebook
+### 11. update_note
+
+Update an existing note title and/or body
+
 ```
 Parameters:
-- parentNotebookId (string) - The ID of the parent notebook
+- noteId (string) - ID of the note to update
+- title (string, optional) - New note title
+- body (string, optional) - New note content (full replacement, not a patch)
 ```
 
-### 12. scan_unchecked_items
+Notes:
+
+- At least one of `title` or `body` must be provided
+- Use this when replacing note content or renaming a note
+
+### 12. append_to_note
+
+Append content to the end of an existing note
+
+```
+Parameters:
+- noteId (string) - ID of the note to append to
+- content (string) - Content to append
+- separator (string, optional) - Separator inserted before appended content (default: "\n\n")
+```
+
+Notes:
+
+- Use this for logs, meeting notes, supplementary info, or test results
+- Prefer this over `update_note` when the intent is to add content without replacing the existing body
+
+### 13. update_notebook
+
+Update an existing notebook title
+
+```
+Parameters:
+- notebookId (string) - ID of the notebook to update
+- title (string) - New notebook title
+```
+
+### 14. scan_unchecked_items
+
 Scan notebooks and sub-notebooks for uncompleted todo items (- [ ])
+
 ```
 Parameters:
 - notebookId (string) - ID of the notebook to scan
 - includeSubNotebooks (boolean, optional) - Whether to recursively scan sub-notebooks (default: true)
 ```
+
+## Editing Semantics
+
+- Use `update_note` to replace a note's title and/or body
+- Use `append_to_note` to add content to the end of a note while preserving existing content
+- Use `move_note` to change which notebook a note belongs to
+- Use `update_notebook` to rename a notebook
 
 ## Usage Examples
 
@@ -231,6 +301,15 @@ AI: Using list_notebooks to find the notebook ID, then using create_note to crea
 
 You: "Show the complete content of a specific note"
 AI: Using get_note_content tool to retrieve note content...
+
+You: "Update the title of note abc123 to Weekly Review"
+AI: Using update_note tool to rename the note...
+
+You: "Append these test results to note abc123"
+AI: Using append_to_note tool to add the new content to the end of the note...
+
+You: "Rename notebook xyz789 to Project Archive"
+AI: Using update_notebook tool to rename the notebook...
 
 You: "Scan my project notebook for all uncompleted todo items"
 AI: Using scan_unchecked_items tool to scan all sub-notebooks...
@@ -308,6 +387,7 @@ Issues and Pull Requests are welcome!
 ## Support
 
 If you encounter problems, please:
+
 1. Check if Joplin Web Clipper is running normally
 2. Review error messages and logs
 3. Submit an Issue with detailed error information

@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import type { JoplinMcpContext } from '../context.js';
+import { registerAppendToNote } from './appendToNote.js';
 import { registerCreateNote } from './createNote.js';
 import { registerCreateNotebook } from './createNotebook.js';
 import { registerDeleteNote } from './deleteNote.js';
@@ -13,6 +14,8 @@ import { registerMoveNote } from './moveNote.js';
 import { registerScanUncheckedItems } from './scanUncheckedItems.js';
 import { registerSearchNotebooks } from './searchNotebooks.js';
 import { registerSearchNotes } from './searchNotes.js';
+import { registerUpdateNote } from './updateNote.js';
+import { registerUpdateNotebook } from './updateNotebook.js';
 
 /**
  * Register all Joplin MCP tools on the given server instance.
@@ -33,4 +36,7 @@ export const registerTools = (
   registerDeleteNotebook(server, context);
   registerMoveNote(server, context);
   registerScanUncheckedItems(server, context);
+  registerUpdateNote(server, context);
+  registerAppendToNote(server, context);
+  registerUpdateNotebook(server, context);
 };
