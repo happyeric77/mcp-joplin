@@ -7,16 +7,16 @@ import type { JoplinMcpContext } from '../context.js';
  */
 export const registerResources = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.resource(
+  server.registerResource(
     'all_notebooks',
     'joplin://notebooks',
     {
       description: 'List of all notebooks in Joplin',
       mimeType: 'application/json',
     },
-    async uri => {
+    async (uri) => {
       const notebooks = await context.client.getNotebooks();
       return {
         contents: [
@@ -27,17 +27,17 @@ export const registerResources = (
           },
         ],
       };
-    }
+    },
   );
 
-  server.resource(
+  server.registerResource(
     'all_notes',
     'joplin://notes',
     {
       description: 'List of all notes in Joplin',
       mimeType: 'application/json',
     },
-    async uri => {
+    async (uri) => {
       const notes = await context.client.getNotes();
       return {
         contents: [
@@ -48,6 +48,6 @@ export const registerResources = (
           },
         ],
       };
-    }
+    },
   );
 };

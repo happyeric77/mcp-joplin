@@ -36,6 +36,17 @@ export interface JoplinTag {
   user_updated_time: number;
 }
 
+export interface JoplinResource {
+  id: string;
+  title: string;
+  mime?: string;
+  filename?: string;
+  file_extension?: string;
+  size?: number;
+  created_time?: number;
+  updated_time?: number;
+}
+
 export interface JoplinSearchResult {
   items: (JoplinNote | JoplinNotebook | JoplinTag)[];
   has_more: boolean;

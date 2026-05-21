@@ -9,7 +9,7 @@ const MAX_PAGES = 50;
 export async function fetchAllPages<T>(
   client: AxiosInstance,
   url: string,
-  params: Record<string, unknown> = {}
+  params: Record<string, unknown> = {},
 ): Promise<T[]> {
   const allItems: T[] = [];
   let page = 1;
@@ -32,7 +32,7 @@ export async function fetchAllPages<T>(
 
     if (page > MAX_PAGES) {
       console.warn(
-        `Reached maximum page limit (${MAX_PAGES}) while fetching ${url}`
+        `Reached maximum page limit (${MAX_PAGES}) while fetching ${url}`,
       );
       break;
     }

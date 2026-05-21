@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError, JoplinNote } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
@@ -15,12 +14,14 @@ const paramsSchema = {
 
 export const registerListNotes = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'list_notes',
-    'List notes in a specific notebook',
-    paramsSchema,
+    {
+      description: 'List notes in a specific notebook',
+      inputSchema: paramsSchema,
+    },
     async ({ notebookId, limit: rawLimit }) => {
       const limit = rawLimit ?? 50;
       try {
@@ -32,7 +33,7 @@ export const registerListNotes = (
         const notes = results.items as JoplinNote[];
         const formattedList = notes
           .slice(0, limit)
-          .map(note => {
+          .map((note) => {
             const todoStatus = note.is_todo
               ? note.todo_completed
                 ? ' ✅'
@@ -64,6 +65,6 @@ export const registerListNotes = (
           ],
         };
       }
-    }
+    },
   );
 };

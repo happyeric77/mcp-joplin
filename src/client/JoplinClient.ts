@@ -1,4 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
+import FormData from 'form-data';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { JoplinApiError } from './errors.js';
 import { fetchAllPages } from './pagination.js';
@@ -6,6 +9,7 @@ import {
   JoplinApiOptions,
   JoplinNote,
   JoplinNotebook,
+  JoplinResource,
   JoplinSearchResult,
   JoplinTag,
 } from './types.js';
@@ -29,7 +33,7 @@ export class JoplinClient {
     });
 
     // Add token to all requests
-    this.client.interceptors.request.use(config => {
+    this.client.interceptors.request.use((config) => {
       if (this.token) {
         config.params = { ...config.params, token: this.token };
       }
@@ -38,17 +42,17 @@ export class JoplinClient {
 
     // Error handling interceptor
     this.client.interceptors.response.use(
-      response => response,
-      error => {
+      (response) => response,
+      (error) => {
         if (error.response) {
           throw new JoplinApiError(
             error.response.data?.error || error.message,
             error.response.status,
-            error.response.data
+            error.response.data,
           );
         }
         throw new JoplinApiError(error.message);
-      }
+      },
     );
   }
 
@@ -69,7 +73,7 @@ export class JoplinClient {
       }
     }
     throw new JoplinApiError(
-      'Joplin Web Clipper service not found. Make sure Joplin is running and Web Clipper is enabled.'
+      'Joplin Web Clipper service not found. Make sure Joplin is running and Web Clipper is enabled.',
     );
   }
 
@@ -86,12 +90,12 @@ export class JoplinClient {
   // ── Notes ───────────────────────────────────────────────────────────
 
   async getNotes(
-    options: { fields?: string; page?: number; limit?: number } = {}
+    options: { fields?: string; page?: number; limit?: number } = {},
   ): Promise<JoplinSearchResult> {
     const items = await fetchAllPages<JoplinNote>(
       this.client,
       '/notes',
-      options
+      options,
     );
     return { items, has_more: false };
   }
@@ -122,6 +126,78 @@ export class JoplinClient {
     await this.client.delete(`/notes/${id}`, { params });
   }
 
+  async getNoteResources(noteId: string): Promise<JoplinResource[]> {
+    const response = await this.client.get(`/notes/${noteId}/resources`);
+    return response.data.items || response.data;
+  }
+
+  async getResource(resourceId: string): Promise<JoplinResource> {
+    const response = await this.client.get(`/resources/${resourceId}`);
+    return response.data;
+  }
+
+  async getResourceFile(
+    resourceId: string,
+  ): Promise<{ data: Buffer; mimeType: string }> {
+    try {
+      const response = await this.client.get(`/resources/${resourceId}/file`, {
+        responseType: 'arraybuffer',
+      });
+
+      return {
+        data: Buffer.from(response.data),
+        mimeType:
+          response.headers['content-type'] || 'application/octet-stream',
+      };
+    } catch (error) {
+      if (error instanceof JoplinApiError) {
+        throw error;
+      }
+
+      throw new JoplinApiError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch resource file.',
+      );
+    }
+  }
+
+  async createImageResource(
+    filePath: string,
+    title?: string,
+  ): Promise<JoplinResource> {
+    try {
+      const form = new FormData();
+
+      form.append(
+        'data',
+        fs.createReadStream(filePath),
+        path.basename(filePath),
+      );
+
+      if (title) {
+        form.append('props', JSON.stringify({ title }));
+      }
+
+      const response = await this.client.post('/resources', form, {
+        headers: form.getHeaders(),
+        maxBodyLength: Infinity,
+      });
+
+      return response.data;
+    } catch (error) {
+      if (error instanceof JoplinApiError) {
+        throw error;
+      }
+
+      throw new JoplinApiError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to create image resource.',
+      );
+    }
+  }
+
   // ── Notebooks (Folders) ─────────────────────────────────────────────
 
   async getNotebooks(): Promise<JoplinNotebook[]> {
@@ -135,18 +211,18 @@ export class JoplinClient {
 
   async getNotesInNotebook(
     notebookId: string,
-    options: { fields?: string; page?: number; limit?: number } = {}
+    options: { fields?: string; page?: number; limit?: number } = {},
   ): Promise<JoplinSearchResult> {
     const items = await fetchAllPages<JoplinNote>(
       this.client,
       `/folders/${notebookId}/notes`,
-      options
+      options,
     );
     return { items, has_more: false };
   }
 
   async createNotebook(
-    notebook: Partial<JoplinNotebook>
+    notebook: Partial<JoplinNotebook>,
   ): Promise<JoplinNotebook> {
     const response = await this.client.post('/folders', notebook);
     return response.data;
@@ -154,7 +230,7 @@ export class JoplinClient {
 
   async updateNotebook(
     id: string,
-    notebook: Partial<JoplinNotebook>
+    notebook: Partial<JoplinNotebook>,
   ): Promise<JoplinNotebook> {
     const response = await this.client.put(`/folders/${id}`, notebook);
     return response.data;
@@ -170,7 +246,7 @@ export class JoplinClient {
   async search(
     query: string,
     type?: 'note' | 'folder' | 'tag',
-    fields?: string
+    fields?: string,
   ): Promise<JoplinSearchResult> {
     const params: Record<string, string> = { query };
     if (type) params.type = type;

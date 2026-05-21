@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
@@ -16,12 +15,14 @@ const paramsSchema = {
 
 export const registerCreateNote = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'create_note',
-    'Create a new note in Joplin',
-    paramsSchema,
+    {
+      description: 'Create a new note in Joplin',
+      inputSchema: paramsSchema,
+    },
     async ({ title, body, notebookId }) => {
       try {
         const noteData: Record<string, unknown> = { title, body };
@@ -53,6 +54,6 @@ export const registerCreateNote = (
           ],
         };
       }
-    }
+    },
   );
 };

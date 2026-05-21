@@ -1,34 +1,40 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { collectNoteImages } from './imageResourceUtils.js';
 
-export const registerListNotebooks = (
+const paramsSchema = {
+  noteId: z.string().describe('The ID of the note whose images to list'),
+};
+
+export const registerListNoteImages = (
   server: McpServer,
   context: JoplinMcpContext,
 ): void => {
   server.registerTool(
-    'list_notebooks',
+    'list_note_images',
     {
-      description: 'List all notebooks in Joplin',
-      inputSchema: {},
+      description: 'List image resources attached to a specific note',
+      inputSchema: paramsSchema,
     },
-    async () => {
+    async ({ noteId }) => {
       try {
-        const notebooks = await context.client.getNotebooks();
-
-        const formattedList = notebooks
-          .map(
-            (notebook) =>
-              `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`,
-          )
-          .join('\n\n---\n\n');
+        const resources = await collectNoteImages(context, noteId);
+        const images = resources.map((resource) => ({
+          id: resource.id,
+          title: resource.title,
+          mime: resource.mime ?? 'unknown',
+          size: resource.size ?? 'unknown',
+          markdownReference: `![](:/${resource.id})`,
+        }));
 
         return {
           content: [
             {
               type: 'text' as const,
-              text: formattedList || 'No notebooks found.',
+              text: JSON.stringify({ images }, null, 2),
             },
           ],
         };
