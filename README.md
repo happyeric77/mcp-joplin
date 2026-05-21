@@ -11,6 +11,7 @@ A Model Context Protocol (MCP) server that integrates with Joplin notes, allowin
 - 🗑️ **Deletion Features**: Delete notes and notebooks (supports trash or permanent deletion)
 - 🔄 **Move Functionality**: Move notes to different notebooks
 - 📋 **List Functionality**: List all notebooks and notes within specific notebooks
+- 🖼️ **Image Support**: List images attached to notes, retrieve image content, and attach local images to notes
 
 ## Requirements
 
@@ -127,7 +128,9 @@ In `~/Library/Application Support/Claude/claude_desktop_config.json`:
 Get the complete content of a specific note
 
 ```
-Parameters: noteId (string) - The ID of the note
+Parameters:
+- noteId (string) - The ID of the note to retrieve
+- includeImages (boolean, optional) - Whether to list attached image metadata (default: true)
 ```
 
 ### 2. search_notes
@@ -278,6 +281,44 @@ Parameters:
 - includeSubNotebooks (boolean, optional) - Whether to recursively scan sub-notebooks (default: true)
 ```
 
+### 15. list_note_images
+
+List image resources attached to a specific note. Supports both Joplin API resource index and note body markdown image reference parsing.
+
+```
+Parameters:
+- noteId (string) - The ID of the note whose images to list
+```
+
+Returns a JSON array with image id, title, mime type, file size, and markdown reference.
+
+### 16. get_note_image
+
+Retrieve an image resource from Joplin by resource ID and return the image content directly.
+
+```
+Parameters:
+- resourceId (string) - The ID of the image resource to retrieve
+```
+
+Supported image types: PNG, JPEG, GIF, WebP.
+
+### 17. attach_image_to_note
+
+Attach a local image file to a Joplin note and insert a markdown image reference into the note body.
+
+```
+Parameters:
+- noteId (string) - The ID of the note to attach the image to
+- filePath (string) - Absolute path to the local image file to attach
+- altText (string, optional) - Alt text for the markdown image
+- title (string, optional) - Title to use for the Joplin image resource (default: filename)
+- position ('end' | 'start', optional) - Where to insert the markdown image (default: end)
+- separator (string, optional) - Separator between note body and inserted markdown (default: "\\n\\n")
+```
+
+Supported image types: PNG, JPEG, GIF, WebP. Max file size: 3MB. SVG is not supported.
+
 ## Editing Semantics
 
 - Use `update_note` to replace a note's title and/or body
@@ -308,8 +349,17 @@ AI: Using update_note tool to rename the note...
 You: "Append these test results to note abc123"
 AI: Using append_to_note tool to add the new content to the end of the note...
 
-You: "Rename notebook xyz789 to Project Archive"
+You: "Rename the notebook 'Recipes' to 'Cooking'"
 AI: Using update_notebook tool to rename the notebook...
+
+You: "List images attached to note abc123"
+AI: Using list_note_images tool to retrieve image metadata...
+
+You: "Show me the image with resource ID def456"
+AI: Using get_note_image tool to retrieve and display the image...
+
+You: "Attach this screenshot to note abc123"
+AI: Using attach_image_to_note tool to upload the image and embed it in the note...
 
 You: "Scan my project notebook for all uncompleted todo items"
 AI: Using scan_unchecked_items tool to scan all sub-notebooks...
