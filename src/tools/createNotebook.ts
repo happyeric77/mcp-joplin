@@ -1,25 +1,26 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 
 export const registerCreateNotebook = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'create_notebook',
-    'Create a new notebook in Joplin',
     {
-      title: z.string().describe('The title of the new notebook'),
-      parentId: z
-        .string()
-        .optional()
-        .describe(
-          'The ID of the parent notebook (optional, for sub-notebooks)'
-        ),
+      description: 'Create a new notebook in Joplin',
+      inputSchema: {
+        title: z.string().describe('The title of the new notebook'),
+        parentId: z
+          .string()
+          .optional()
+          .describe(
+            'The ID of the parent notebook (optional, for sub-notebooks)',
+          ),
+      },
     },
     async ({ title, parentId }) => {
       try {
@@ -52,6 +53,6 @@ export const registerCreateNotebook = (
           ],
         };
       }
-    }
+    },
   );
 };

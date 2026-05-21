@@ -1,30 +1,32 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError, JoplinNote, JoplinNotebook } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 
 export const registerScanUncheckedItems = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'scan_unchecked_items',
-    'Scan a notebook and its sub-notebooks for unchecked items: both markdown todo items (- [ ]) and uncompleted Joplin todo notes',
     {
-      notebookId: z.string().describe('The ID of the notebook to scan'),
-      includeSubNotebooks: z
-        .boolean()
-        .default(true)
-        .describe(
-          'Whether to include sub-notebooks in the scan (default: true)'
-        ),
+      description:
+        'Scan a notebook and its sub-notebooks for unchecked items: both markdown todo items (- [ ]) and uncompleted Joplin todo notes',
+      inputSchema: {
+        notebookId: z.string().describe('The ID of the notebook to scan'),
+        includeSubNotebooks: z
+          .boolean()
+          .default(true)
+          .describe(
+            'Whether to include sub-notebooks in the scan (default: true)',
+          ),
+      },
     },
     async ({ notebookId, includeSubNotebooks }) => {
       try {
         const allNotebooks = await context.client.getNotebooks();
-        const targetNotebook = allNotebooks.find(nb => nb.id === notebookId);
+        const targetNotebook = allNotebooks.find((nb) => nb.id === notebookId);
 
         if (!targetNotebook) {
           return {
@@ -57,7 +59,7 @@ export const registerScanUncheckedItems = (
         if (includeSubNotebooks) {
           const subNotebooks = getSubNotebooksRecursively(
             allNotebooks,
-            notebookId
+            notebookId,
           );
           notebooksToScan.push(...subNotebooks);
         }
@@ -68,7 +70,7 @@ export const registerScanUncheckedItems = (
 
         for (const notebook of notebooksToScan) {
           const notesInNotebook = allNotes.filter(
-            note => note.parent_id === notebook.id
+            (note) => note.parent_id === notebook.id,
           );
 
           for (const note of notesInNotebook) {
@@ -83,7 +85,7 @@ export const registerScanUncheckedItems = (
 
             const fullNote = await context.client.getNote(
               note.id,
-              'title,body'
+              'title,body',
             );
             const uncheckedMatches = fullNote.body.match(/^- \[ \].*/gm);
 
@@ -101,7 +103,7 @@ export const registerScanUncheckedItems = (
         // Format results
         const totalMarkdownItems = uncheckedMarkdownItems.reduce(
           (total, item) => total + item.uncheckedItems.length,
-          0
+          0,
         );
         const totalTodoNotes = uncompletedTodos.length;
 
@@ -125,7 +127,7 @@ export const registerScanUncheckedItems = (
         if (uncompletedTodos.length > 0) {
           details += '## 📝 Uncompleted Todo Notes\n\n';
           details += uncompletedTodos
-            .map(todo => {
+            .map((todo) => {
               return `**📓 ${todo.notebookTitle} → ☐ ${todo.noteTitle}** (ID: ${todo.noteId})\nUpdated: ${todo.updatedTime}`;
             })
             .join('\n\n---\n\n');
@@ -138,9 +140,9 @@ export const registerScanUncheckedItems = (
         if (uncheckedMarkdownItems.length > 0) {
           details += '## ✓ Unchecked Markdown Items\n\n';
           details += uncheckedMarkdownItems
-            .map(item => {
+            .map((item) => {
               const itemList = item.uncheckedItems
-                .map(unchecked => `  ${unchecked}`)
+                .map((unchecked) => `  ${unchecked}`)
                 .join('\n');
               return `**📓 ${item.notebookTitle} → 📝 ${item.noteTitle}** (ID: ${item.noteId})\n${itemList}`;
             })
@@ -164,16 +166,16 @@ export const registerScanUncheckedItems = (
           ],
         };
       }
-    }
+    },
   );
 };
 
 function getSubNotebooksRecursively(
   allNotebooks: JoplinNotebook[],
-  parentId: string
+  parentId: string,
 ): JoplinNotebook[] {
   const subNotebooks: JoplinNotebook[] = [];
-  const directChildren = allNotebooks.filter(nb => nb.parent_id === parentId);
+  const directChildren = allNotebooks.filter((nb) => nb.parent_id === parentId);
 
   for (const child of directChildren) {
     subNotebooks.push(child);

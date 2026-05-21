@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
@@ -15,26 +14,28 @@ const paramsSchema = {
 
 export const registerSearchNotes = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'search_notes',
-    'Search for notes by query string',
-    paramsSchema,
+    {
+      description: 'Search for notes by query string',
+      inputSchema: paramsSchema,
+    },
     async ({ query, limit: rawLimit }) => {
       const limit = rawLimit ?? 20;
       try {
         const results = await context.client.search(
           query,
           'note',
-          'id,title,body,parent_id,updated_time'
+          'id,title,body,parent_id,updated_time',
         );
         const notes = results.items.slice(0, limit);
 
         const formattedResults = notes
           .map(
-            note =>
-              `**${note.title}** (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}\nPreview: ${'body' in note && note.body ? note.body.substring(0, 100) : ''}...`
+            (note) =>
+              `**${note.title}** (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}\nPreview: ${'body' in note && note.body ? note.body.substring(0, 100) : ''}...`,
           )
           .join('\n\n---\n\n');
 
@@ -60,6 +61,6 @@ export const registerSearchNotes = (
           ],
         };
       }
-    }
+    },
   );
 };

@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
@@ -15,18 +14,21 @@ const paramsSchema = {
     .string()
     .optional()
     .describe(
-      'The new body content for the note in Markdown format (optional, full replacement)'
+      'The new body content for the note in Markdown format (optional, full replacement)',
     ),
 };
 
 export const registerUpdateNote = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'update_note',
-    'Update an existing note title and/or body content. At least one of title or body must be provided. Body is a full replacement, not a patch.',
-    paramsSchema,
+    {
+      description:
+        'Update an existing note title and/or body content. At least one of title or body must be provided. Body is a full replacement, not a patch.',
+      inputSchema: paramsSchema,
+    },
     async ({ noteId, title, body }) => {
       try {
         if (title === undefined && body === undefined) {
@@ -77,6 +79,6 @@ export const registerUpdateNote = (
           ],
         };
       }
-    }
+    },
   );
 };

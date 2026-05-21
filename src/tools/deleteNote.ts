@@ -1,25 +1,26 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 
 export const registerDeleteNote = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'delete_note',
-    'Delete a note from Joplin',
     {
-      noteId: z.string().describe('The ID of the note to delete'),
-      permanent: z
-        .boolean()
-        .default(false)
-        .describe(
-          'Whether to permanently delete the note (default: false, moves to trash)'
-        ),
+      description: 'Delete a note from Joplin',
+      inputSchema: {
+        noteId: z.string().describe('The ID of the note to delete'),
+        permanent: z
+          .boolean()
+          .default(false)
+          .describe(
+            'Whether to permanently delete the note (default: false, moves to trash)',
+          ),
+      },
     },
     async ({ noteId, permanent }) => {
       try {
@@ -45,6 +46,6 @@ export const registerDeleteNote = (
           ],
         };
       }
-    }
+    },
   );
 };

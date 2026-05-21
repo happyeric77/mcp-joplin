@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
@@ -12,24 +11,27 @@ const paramsSchema = {
     .string()
     .optional()
     .describe(
-      'Separator between existing content and appended content (default: "\\n\\n")'
+      'Separator between existing content and appended content (default: "\\n\\n")',
     ),
 };
 
 export const registerAppendToNote = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'append_to_note',
-    'Append content to the end of an existing note. Useful for logs, meeting notes, supplementary info, or test results.',
-    paramsSchema,
+    {
+      description:
+        'Append content to the end of an existing note. Useful for logs, meeting notes, supplementary info, or test results.',
+      inputSchema: paramsSchema,
+    },
     async ({ noteId, content, separator }) => {
       try {
         // Read existing note
         const existingNote = await context.client.getNote(
           noteId,
-          'id,title,body'
+          'id,title,body',
         );
         const existingBody = existingNote.body ?? '';
 
@@ -67,6 +69,6 @@ export const registerAppendToNote = (
           ],
         };
       }
-    }
+    },
   );
 };

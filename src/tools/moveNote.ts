@@ -1,20 +1,21 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 
 export const registerMoveNote = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'move_note',
-    'Move a note to a different notebook',
     {
-      noteId: z.string().describe('The ID of the note to move'),
-      targetNotebookId: z.string().describe('The ID of the target notebook'),
+      description: 'Move a note to a different notebook',
+      inputSchema: {
+        noteId: z.string().describe('The ID of the note to move'),
+        targetNotebookId: z.string().describe('The ID of the target notebook'),
+      },
     },
     async ({ noteId, targetNotebookId }) => {
       try {
@@ -44,6 +45,6 @@ export const registerMoveNote = (
           ],
         };
       }
-    }
+    },
   );
 };

@@ -1,26 +1,54 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { collectNoteImages } from './imageResourceUtils.js';
+
+const paramsSchema = {
+  noteId: z.string().describe('The ID of the note to retrieve'),
+  includeImages: z
+    .boolean()
+    .optional()
+    .describe(
+      'Whether to include image metadata in the response (default: true)',
+    ),
+};
 
 export const registerGetNoteContent = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
-  server.tool(
+  server.registerTool(
     'get_note_content',
-    'Get the content of a specific note by ID',
     {
-      noteId: z.string().describe('The ID of the note to retrieve'),
+      description: 'Get the content of a specific note by ID',
+      inputSchema: paramsSchema,
     },
-    async ({ noteId }) => {
+    async ({ noteId, includeImages = true }) => {
       try {
         const note = await context.client.getNote(noteId);
+
+        let body = note.body ?? '';
+
+        if (includeImages) {
+          const images = await collectNoteImages(context, noteId);
+
+          if (images.length > 0) {
+            const imageList = images
+              .map(
+                (img) =>
+                  `- **${img.title}**  \n  id: \`${img.id}\`  |  mime: \`${img.mime ?? 'unknown'}\`  |  size: ${img.size ?? 'unknown'} bytes  |  reference: ![${img.title}](:/${img.id})`,
+              )
+              .join('\n');
+
+            body = `${body}\n\n## Images\n\n${imageList}`;
+          }
+        }
+
         return {
           content: [
-            { type: 'text' as const, text: `# ${note.title}\n\n${note.body}` },
+            { type: 'text' as const, text: `# ${note.title}\n\n${body}` },
           ],
         };
       } catch (error) {
@@ -37,6 +65,6 @@ export const registerGetNoteContent = (
           ],
         };
       }
-    }
+    },
   );
 };
