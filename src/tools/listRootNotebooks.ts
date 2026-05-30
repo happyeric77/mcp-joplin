@@ -3,19 +3,19 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 
-export const registerListNotebooks = (
+export const registerListRootNotebooks = (
   server: McpServer,
   context: JoplinMcpContext,
 ): void => {
   server.registerTool(
-    'list_notebooks',
+    'list_root_notebooks',
     {
-      description: 'List all notebooks in Joplin',
+      description: 'List top-level/root notebooks from the Joplin folder tree',
       inputSchema: {},
     },
     async () => {
       try {
-        const notebooks = await context.client.getNotebooks();
+        const notebooks = await context.client.getNotebookTree();
 
         const formattedList = notebooks
           .map(
@@ -28,7 +28,7 @@ export const registerListNotebooks = (
           content: [
             {
               type: 'text' as const,
-              text: formattedList || 'No notebooks found.',
+              text: formattedList || 'No root notebooks found.',
             },
           ],
         };

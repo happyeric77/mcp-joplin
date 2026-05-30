@@ -14,6 +14,17 @@ export async function createContext(
 ): Promise<JoplinMcpContext> {
   let actualPort = config.port;
 
+  // If a base URL is explicitly provided, use it directly and skip port auto-discovery.
+  if (config.baseUrl) {
+    const client = new JoplinClient({
+      token: config.token,
+      baseUrl: config.baseUrl,
+    });
+    await client.ping();
+    console.error(`Connected to Joplin at ${config.baseUrl}`);
+    return { client };
+  }
+
   // Auto-discover port if not provided
   if (!actualPort) {
     const tempClient = new JoplinClient({ token: config.token });

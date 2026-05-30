@@ -4,15 +4,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { JoplinApiError } from './errors.js';
-import { fetchAllPages } from './pagination.js';
 import {
   JoplinApiOptions,
+  JoplinCollectionPage,
   JoplinNote,
   JoplinNotebook,
+  JoplinPageOptions,
   JoplinResource,
   JoplinSearchResult,
+  JoplinSearchType,
   JoplinTag,
 } from './types.js';
+
+type JoplinCollectionResponse<T> = JoplinCollectionPage<T> | T[];
 
 export class JoplinClient {
   private client: AxiosInstance;
@@ -32,7 +36,6 @@ export class JoplinClient {
       },
     });
 
-    // Add token to all requests
     this.client.interceptors.request.use((config) => {
       if (this.token) {
         config.params = { ...config.params, token: this.token };
@@ -40,7 +43,6 @@ export class JoplinClient {
       return config;
     });
 
-    // Error handling interceptor
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
@@ -81,6 +83,42 @@ export class JoplinClient {
     this.token = token;
   }
 
+  private buildPageParams(
+    options: JoplinPageOptions = {},
+  ): Record<string, string | number> {
+    const params: Record<string, string | number> = {};
+
+    if (options.fields !== undefined && options.fields !== '') {
+      params.fields = options.fields;
+    }
+    if (options.page !== undefined) {
+      params.page = options.page;
+    }
+    if (options.limit !== undefined) {
+      params.limit = options.limit;
+    }
+
+    return params;
+  }
+
+  private async getPage<T>(
+    url: string,
+    options: JoplinPageOptions = {},
+  ): Promise<JoplinCollectionPage<T>> {
+    const response = await this.client.get<JoplinCollectionPage<T>>(url, {
+      params: this.buildPageParams(options),
+    });
+
+    return {
+      items: response.data.items,
+      has_more: response.data.has_more === true,
+    };
+  }
+
+  private getCollectionItems<T>(data: JoplinCollectionResponse<T>): T[] {
+    return Array.isArray(data) ? data : data.items;
+  }
+
   /** Test the connection to the Joplin API. */
   async ping(): Promise<string> {
     const response = await this.client.get('/ping');
@@ -90,14 +128,9 @@ export class JoplinClient {
   // ── Notes ───────────────────────────────────────────────────────────
 
   async getNotes(
-    options: { fields?: string; page?: number; limit?: number } = {},
-  ): Promise<JoplinSearchResult> {
-    const items = await fetchAllPages<JoplinNote>(
-      this.client,
-      '/notes',
-      options,
-    );
-    return { items, has_more: false };
+    options: JoplinPageOptions = {},
+  ): Promise<JoplinCollectionPage<JoplinNote>> {
+    return this.getPage<JoplinNote>('/notes', options);
   }
 
   async getNote(id: string, fields?: string): Promise<JoplinNote> {
@@ -200,8 +233,12 @@ export class JoplinClient {
 
   // ── Notebooks (Folders) ─────────────────────────────────────────────
 
-  async getNotebooks(): Promise<JoplinNotebook[]> {
-    return fetchAllPages<JoplinNotebook>(this.client, '/folders');
+  async getNotebookTree(): Promise<JoplinNotebook[]> {
+    const response =
+      await this.client.get<JoplinCollectionResponse<JoplinNotebook>>(
+        '/folders',
+      );
+    return this.getCollectionItems(response.data);
   }
 
   async getNotebook(id: string): Promise<JoplinNotebook> {
@@ -211,14 +248,9 @@ export class JoplinClient {
 
   async getNotesInNotebook(
     notebookId: string,
-    options: { fields?: string; page?: number; limit?: number } = {},
-  ): Promise<JoplinSearchResult> {
-    const items = await fetchAllPages<JoplinNote>(
-      this.client,
-      `/folders/${notebookId}/notes`,
-      options,
-    );
-    return { items, has_more: false };
+    options: JoplinPageOptions = {},
+  ): Promise<JoplinCollectionPage<JoplinNote>> {
+    return this.getPage<JoplinNote>(`/folders/${notebookId}/notes`, options);
   }
 
   async createNotebook(
@@ -245,15 +277,45 @@ export class JoplinClient {
 
   async search(
     query: string,
-    type?: 'note' | 'folder' | 'tag',
+    type: 'note',
     fields?: string,
+    options?: JoplinPageOptions,
+  ): Promise<JoplinCollectionPage<JoplinNote>>;
+
+  async search(
+    query: string,
+    type: 'folder',
+    fields?: string,
+    options?: JoplinPageOptions,
+  ): Promise<JoplinCollectionPage<JoplinNotebook>>;
+
+  async search(
+    query: string,
+    type: 'tag',
+    fields?: string,
+    options?: JoplinPageOptions,
+  ): Promise<JoplinCollectionPage<JoplinTag>>;
+
+  async search(
+    query: string,
+    type?: JoplinSearchType,
+    fields?: string,
+    options: JoplinPageOptions = {},
   ): Promise<JoplinSearchResult> {
-    const params: Record<string, string> = { query };
+    const params: Record<string, string | number> = {
+      ...this.buildPageParams(options),
+      query,
+    };
     if (type) params.type = type;
     if (fields) params.fields = fields;
 
-    const response = await this.client.get('/search', { params });
-    return response.data;
+    const response = await this.client.get<JoplinSearchResult>('/search', {
+      params,
+    });
+    return {
+      items: response.data.items,
+      has_more: response.data.has_more === true,
+    };
   }
 
   // ── Tags ────────────────────────────────────────────────────────────

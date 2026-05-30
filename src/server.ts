@@ -2,7 +2,6 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { version } from '../package.json';
 import { JoplinMcpContext } from './context.js';
-import { registerResources } from './resources/index.js';
 import { registerTools } from './tools/index.js';
 
 export interface CreateServerOptions {
@@ -25,7 +24,6 @@ export function createJoplinMcpServer(
   });
 
   registerTools(server, context);
-  registerResources(server, context);
 
   return { server, context };
 }

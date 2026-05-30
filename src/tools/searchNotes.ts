@@ -3,13 +3,21 @@ import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import {
+  afterParamSchema,
+  firstParamSchema,
+  formatPaginationMetadata,
+  formatToolError,
+  getEndCursor,
+  resolvePagination,
+} from './pagination.js';
+
+const DEFAULT_FIRST = 20;
 
 const paramsSchema = {
   query: z.string().describe('Search query string'),
-  limit: z
-    .number()
-    .optional()
-    .describe('Maximum number of results to return (default: 20)'),
+  first: firstParamSchema(DEFAULT_FIRST),
+  after: afterParamSchema,
 };
 
 export const registerSearchNotes = (
@@ -19,23 +27,39 @@ export const registerSearchNotes = (
   server.registerTool(
     'search_notes',
     {
-      description: 'Search for notes by query string',
+      description: 'Search one paginated page of notes by query string',
       inputSchema: paramsSchema,
     },
-    async ({ query, limit: rawLimit }) => {
-      const limit = rawLimit ?? 20;
+    async ({ query, first, after }) => {
       try {
+        const pagination = resolvePagination({
+          first,
+          after,
+          defaultFirst: DEFAULT_FIRST,
+          scope: `search_notes:${query}`,
+        });
         const results = await context.client.search(
           query,
           'note',
           'id,title,body,parent_id,updated_time',
+          {
+            page: pagination.page,
+            limit: pagination.limit,
+          },
         );
-        const notes = results.items.slice(0, limit);
 
-        const formattedResults = notes
+        const endCursor = getEndCursor(pagination, results.has_more);
+        const paginationMetadata = formatPaginationMetadata({
+          returnedCount: results.items.length,
+          pageSize: pagination.limit,
+          hasNextPage: results.has_more,
+          endCursor,
+        });
+
+        const formattedResults = results.items
           .map(
             (note) =>
-              `**${note.title}** (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}\nPreview: ${'body' in note && note.body ? note.body.substring(0, 100) : ''}...`,
+              `**${note.title}** (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}\nPreview: ${note.body ? note.body.substring(0, 100) : ''}...`,
           )
           .join('\n\n---\n\n');
 
@@ -43,7 +67,7 @@ export const registerSearchNotes = (
           content: [
             {
               type: 'text' as const,
-              text: formattedResults || 'No notes found matching your query.',
+              text: `${paginationMetadata}\n\n${formattedResults || 'No notes found matching your query.'}`,
             },
           ],
         };
@@ -56,7 +80,7 @@ export const registerSearchNotes = (
               text:
                 error instanceof JoplinApiError
                   ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
+                  : formatToolError(error),
             },
           ],
         };
