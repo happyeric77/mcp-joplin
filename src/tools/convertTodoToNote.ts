@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
@@ -12,7 +11,7 @@ const paramsSchema = {
 
 export const registerConvertTodoToNote = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
   server.tool(
     'convert_todo_to_note',
@@ -58,6 +57,6 @@ export const registerConvertTodoToNote = (
           ],
         };
       }
-    }
+    },
   );
 };

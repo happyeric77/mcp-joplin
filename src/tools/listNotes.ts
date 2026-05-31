@@ -69,7 +69,7 @@ export const registerListNotes = (
               lines.push(`Status: ${formatTodoStatus(note)}`);
               if (note.todo_completed > 0) {
                 lines.push(
-                  `Completed: ${formatTimestamp(note.todo_completed)}`
+                  `Completed: ${formatTimestamp(note.todo_completed)}`,
                 );
               }
               if (note.todo_due > 0) {
@@ -78,7 +78,7 @@ export const registerListNotes = (
             }
 
             lines.push(
-              `Updated: ${new Date(note.updated_time).toLocaleString()}`
+              `Updated: ${new Date(note.updated_time).toLocaleString()}`,
             );
             return lines.join('\n');
           })

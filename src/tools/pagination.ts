@@ -37,7 +37,7 @@ export const firstParamSchema = (defaultFirst: number) =>
     .max(MAX_FIRST)
     .optional()
     .describe(
-      `Maximum number of results to return for this page (default: ${defaultFirst}, max: ${MAX_FIRST}); this never means all results`
+      `Maximum number of results to return for this page (default: ${defaultFirst}, max: ${MAX_FIRST}); this never means all results`,
     );
 
 export const afterParamSchema = z
@@ -71,7 +71,7 @@ const isCursorPayload = (value: unknown): value is CursorPayload => {
 const validateFirst = (first: number): void => {
   if (!isValidLimit(first)) {
     throw new InvalidPaginationError(
-      `first must be an integer between 1 and ${MAX_FIRST}.`
+      `first must be an integer between 1 and ${MAX_FIRST}.`,
     );
   }
 };
@@ -88,7 +88,7 @@ export const encodeCursor = (pagination: ResolvedPagination): string => {
 const decodeCursor = (cursor: string): CursorPayload => {
   if (cursor.length > MAX_CURSOR_LENGTH) {
     throw new InvalidPaginationError(
-      'Invalid cursor: use the exact endCursor returned by the previous page.'
+      'Invalid cursor: use the exact endCursor returned by the previous page.',
     );
   }
 
@@ -103,7 +103,7 @@ const decodeCursor = (cursor: string): CursorPayload => {
     return payload;
   } catch {
     throw new InvalidPaginationError(
-      'Invalid cursor: use the exact endCursor returned by the previous page.'
+      'Invalid cursor: use the exact endCursor returned by the previous page.',
     );
   }
 };
@@ -124,13 +124,13 @@ export const resolvePagination = ({
     const cursor = decodeCursor(after);
     if (cursor.scope !== scope) {
       throw new InvalidPaginationError(
-        'Invalid pagination request: cursor does not match the current request parameters.'
+        'Invalid pagination request: cursor does not match the current request parameters.',
       );
     }
 
     if (first !== undefined && first !== cursor.limit) {
       throw new InvalidPaginationError(
-        'Invalid pagination request: when after is provided, omit first or use the same first value as the original page.'
+        'Invalid pagination request: when after is provided, omit first or use the same first value as the original page.',
       );
     }
 
@@ -146,7 +146,7 @@ export const resolvePagination = ({
 
 export const getEndCursor = (
   pagination: ResolvedPagination,
-  hasNextPage: boolean
+  hasNextPage: boolean,
 ): string | undefined => {
   if (!hasNextPage) {
     return undefined;
@@ -184,7 +184,7 @@ export const formatPaginationMetadata = ({
   if (hasNextPage && endCursor) {
     lines.push(
       '',
-      `⚠️ Result is incomplete. Continue with after=${endCursor} before concluding coverage.`
+      `⚠️ Result is incomplete. Continue with after=${endCursor} before concluding coverage.`,
     );
   }
 

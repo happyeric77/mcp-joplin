@@ -15,10 +15,18 @@ const TODO_METADATA_FIELD_LIST = [
   'todo_completed',
 ] as const;
 
-export const TODO_NOTE_FIELDS =
-  [...TODO_METADATA_FIELD_LIST, 'body', 'parent_id', 'created_time', 'updated_time'].join(',');
+export const TODO_NOTE_FIELDS = [
+  ...TODO_METADATA_FIELD_LIST,
+  'body',
+  'parent_id',
+  'created_time',
+  'updated_time',
+].join(',');
 
-export const TODO_LIST_FIELDS = [...TODO_METADATA_FIELD_LIST, 'updated_time'].join(',');
+export const TODO_LIST_FIELDS = [
+  ...TODO_METADATA_FIELD_LIST,
+  'updated_time',
+].join(',');
 
 export const TODO_METADATA_FIELDS = TODO_METADATA_FIELD_LIST.join(',');
 
@@ -35,7 +43,7 @@ export const parseDateToMs = (value: string): number => {
 
   if (!Number.isFinite(timestamp) || timestamp <= 0) {
     throw new Error(
-      `Invalid date: ${value}. Use an ISO date/time string or a positive millisecond timestamp.`
+      `Invalid date: ${value}. Use an ISO date/time string or a positive millisecond timestamp.`,
     );
   }
 
@@ -54,11 +62,11 @@ export const isTodoNote = (note: Pick<JoplinNote, 'is_todo'>): boolean =>
   note.is_todo === 1;
 
 export const isTodoOpen = (
-  note: Pick<JoplinNote, 'is_todo' | 'todo_completed'>
+  note: Pick<JoplinNote, 'is_todo' | 'todo_completed'>,
 ): boolean => isTodoNote(note) && note.todo_completed === 0;
 
 export const formatTodoStatus = (
-  note: Pick<JoplinNote, 'is_todo' | 'todo_completed'>
+  note: Pick<JoplinNote, 'is_todo' | 'todo_completed'>,
 ): string => {
   if (!isTodoNote(note)) {
     return 'Regular note';
@@ -68,7 +76,7 @@ export const formatTodoStatus = (
 };
 
 export const formatTodoIcon = (
-  note: Pick<JoplinNote, 'is_todo' | 'todo_completed'>
+  note: Pick<JoplinNote, 'is_todo' | 'todo_completed'>,
 ): string => {
   if (!isTodoNote(note)) {
     return '';
@@ -80,7 +88,7 @@ export const formatTodoIcon = (
 export const assertTodoNote = (note: TodoIdentity): void => {
   if (!isTodoNote(note)) {
     throw new Error(
-      `Note "${note.title}" (${note.id}) is not a native Joplin todo note.`
+      `Note "${note.title}" (${note.id}) is not a native Joplin todo note.`,
     );
   }
 };
@@ -88,14 +96,14 @@ export const assertTodoNote = (note: TodoIdentity): void => {
 export const assertRegularNote = (note: TodoIdentity): void => {
   if (isTodoNote(note)) {
     throw new Error(
-      `Note "${note.title}" (${note.id}) is already a native Joplin todo note.`
+      `Note "${note.title}" (${note.id}) is already a native Joplin todo note.`,
     );
   }
 };
 
 export const matchesTodoStatus = (
   note: TodoMetadata,
-  status: TodoStatus
+  status: TodoStatus,
 ): boolean => {
   if (!isTodoNote(note)) {
     return false;

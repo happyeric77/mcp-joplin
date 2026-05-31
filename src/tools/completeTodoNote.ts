@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
@@ -17,13 +16,13 @@ const paramsSchema = {
     .string()
     .optional()
     .describe(
-      'Optional completion date/time as an ISO string or millisecond timestamp; defaults to now'
+      'Optional completion date/time as an ISO string or millisecond timestamp; defaults to now',
     ),
 };
 
 export const registerCompleteTodoNote = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
   server.tool(
     'complete_todo_note',
@@ -71,6 +70,6 @@ export const registerCompleteTodoNote = (
           ],
         };
       }
-    }
+    },
   );
 };

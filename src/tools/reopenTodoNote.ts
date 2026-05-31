@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
@@ -12,7 +11,7 @@ const paramsSchema = {
 
 export const registerReopenTodoNote = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
   server.tool(
     'reopen_todo_note',
@@ -54,6 +53,6 @@ export const registerReopenTodoNote = (
           ],
         };
       }
-    }
+    },
   );
 };

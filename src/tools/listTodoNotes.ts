@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import {
   JoplinApiError,
@@ -108,7 +107,7 @@ const encodeTodoCursor = (cursor: TodoCursorPayload): string =>
 const decodeTodoCursor = (cursor: string): TodoCursorPayload => {
   if (cursor.length > MAX_CURSOR_LENGTH) {
     throw new InvalidPaginationError(
-      'Invalid cursor: use the exact endCursor returned by the previous page.'
+      'Invalid cursor: use the exact endCursor returned by the previous page.',
     );
   }
 
@@ -123,7 +122,7 @@ const decodeTodoCursor = (cursor: string): TodoCursorPayload => {
     return payload;
   } catch {
     throw new InvalidPaginationError(
-      'Invalid cursor: use the exact endCursor returned by the previous page.'
+      'Invalid cursor: use the exact endCursor returned by the previous page.',
     );
   }
 };
@@ -131,7 +130,7 @@ const decodeTodoCursor = (cursor: string): TodoCursorPayload => {
 const validateFirst = (first: number): void => {
   if (!isValidLimit(first)) {
     throw new InvalidPaginationError(
-      `first must be an integer between 1 and ${MAX_FIRST}.`
+      `first must be an integer between 1 and ${MAX_FIRST}.`,
     );
   }
 };
@@ -159,13 +158,13 @@ const resolveTodoCursor = ({
     const cursor = decodeTodoCursor(after);
     if (cursor.scope !== scope) {
       throw new InvalidPaginationError(
-        'Invalid pagination request: cursor does not match the current request parameters.'
+        'Invalid pagination request: cursor does not match the current request parameters.',
       );
     }
 
     if (first !== undefined && first !== cursor.limit) {
       throw new InvalidPaginationError(
-        'Invalid pagination request: when after is provided, omit first or use the same first value as the original page.'
+        'Invalid pagination request: when after is provided, omit first or use the same first value as the original page.',
       );
     }
 
@@ -174,7 +173,7 @@ const resolveTodoCursor = ({
       cursor.includeSubNotebooks !== includeSubNotebooks
     ) {
       throw new InvalidPaginationError(
-        'Invalid pagination request: cursor does not match the current todo filters.'
+        'Invalid pagination request: cursor does not match the current todo filters.',
       );
     }
 
@@ -199,7 +198,7 @@ const collectNotebookIds = (notebook: JoplinNotebook): string[] => [
 
 const findNotebookIds = (
   notebooks: JoplinNotebook[],
-  notebookId: string
+  notebookId: string,
 ): string[] | undefined => {
   for (const notebook of notebooks) {
     if (notebook.id === notebookId) {
@@ -218,7 +217,7 @@ const findNotebookIds = (
 const resolveNotebookIds = async (
   context: JoplinMcpContext,
   notebookId: string,
-  includeSubNotebooks: boolean
+  includeSubNotebooks: boolean,
 ): Promise<string[]> => {
   if (!includeSubNotebooks) {
     return [notebookId];
@@ -236,7 +235,7 @@ const resolveNotebookIds = async (
 const getNextPositionAfterPage = (
   page: { has_more: boolean },
   position: ScannerPosition,
-  notebookCount: number
+  notebookCount: number,
 ): ScannerPosition | undefined => {
   if (page.has_more) {
     return {
@@ -262,7 +261,7 @@ const getNextPositionAfterItem = (
   itemIndex: number,
   page: { items: JoplinNote[]; has_more: boolean },
   position: ScannerPosition,
-  notebookCount: number
+  notebookCount: number,
 ): ScannerPosition | undefined => {
   const nextItemOffset = itemIndex + 1;
   if (nextItemOffset < page.items.length) {
@@ -279,7 +278,7 @@ const getNextPositionAfterItem = (
 const scanTodoNotes = async (
   context: JoplinMcpContext,
   notebookIds: string[],
-  cursor: TodoCursorPayload
+  cursor: TodoCursorPayload,
 ): Promise<TodoScanResult> => {
   const items: JoplinNote[] = [];
   const scannedNotebookIndexes = new Set<number>();
@@ -319,7 +318,7 @@ const scanTodoNotes = async (
             index,
             page,
             position,
-            notebookIds.length
+            notebookIds.length,
           );
           break;
         }
@@ -380,13 +379,13 @@ const formatScanPaginationMetadata = ({
 
   lines.push(
     `- scannedNotebooks: ${scannedNotebooks}`,
-    `- scannedNotePages: ${scannedNotePages}`
+    `- scannedNotePages: ${scannedNotePages}`,
   );
 
   if (hasNextPage && endCursor) {
     lines.push(
       '',
-      `⚠️ Result is incomplete. Continue with after=${endCursor} before concluding coverage.`
+      `⚠️ Result is incomplete. Continue with after=${endCursor} before concluding coverage.`,
     );
   }
 
@@ -404,7 +403,7 @@ const formatTodoNote = (note: JoplinNote): string =>
 
 export const registerListTodoNotes = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
   server.tool(
     'list_todo_notes',
@@ -426,7 +425,7 @@ export const registerListTodoNotes = (
         const notebookIds = await resolveNotebookIds(
           context,
           notebookId,
-          includeChildren
+          includeChildren,
         );
         const result = await scanTodoNotes(context, notebookIds, cursor);
 
@@ -466,6 +465,6 @@ export const registerListTodoNotes = (
           ],
         };
       }
-    }
+    },
   );
 };

@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 
 import { JoplinApiError, type JoplinNote } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
@@ -36,7 +35,7 @@ const paramsSchema = {
 
 const buildTodoSearchQuery = (
   query: string | undefined,
-  status: TodoStatus
+  status: TodoStatus,
 ): string => {
   const terms: string[] = [];
   const trimmedQuery = query?.trim();
@@ -68,7 +67,7 @@ const formatTodoSearchResult = (note: JoplinNote): string => {
 
 export const registerSearchTodoNotes = (
   server: McpServer,
-  context: JoplinMcpContext
+  context: JoplinMcpContext,
 ): void => {
   server.tool(
     'search_todo_notes',
@@ -91,7 +90,7 @@ export const registerSearchTodoNotes = (
           {
             page: pagination.page,
             limit: pagination.limit,
-          }
+          },
         );
 
         const endCursor = getEndCursor(pagination, results.has_more);
@@ -129,6 +128,6 @@ export const registerSearchTodoNotes = (
           ],
         };
       }
-    }
+    },
   );
 };

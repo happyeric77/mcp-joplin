@@ -20,7 +20,8 @@ export const registerUpdateNotebook = (
   server.registerTool(
     'update_notebook',
     {
-      description: 'Update the title and optionally parent of an existing notebook',
+      description:
+        'Update the title and optionally parent of an existing notebook',
       inputSchema: paramsSchema,
     },
     async ({ notebookId, title, parentId }) => {
