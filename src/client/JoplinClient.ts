@@ -135,7 +135,7 @@ export class JoplinClient {
 
   async getNote(id: string, fields?: string): Promise<JoplinNote> {
     const defaultFields =
-      'id,title,body,parent_id,created_time,updated_time,is_todo,todo_completed';
+      'id,title,body,parent_id,created_time,updated_time,is_todo,todo_due,todo_completed';
     const actualFields =
       fields !== undefined && fields !== '' ? fields : defaultFields;
     const response = await this.client.get(`/notes/${id}`, {

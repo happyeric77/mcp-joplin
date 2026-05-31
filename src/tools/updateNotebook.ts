@@ -7,6 +7,10 @@ import type { JoplinMcpContext } from '../context.js';
 const paramsSchema = {
   notebookId: z.string().describe('The ID of the notebook to update'),
   title: z.string().describe('The new title for the notebook'),
+  parentId: z
+    .string()
+    .optional()
+    .describe('The ID of the new parent notebook (optional)'),
 };
 
 export const registerUpdateNotebook = (
@@ -16,13 +20,14 @@ export const registerUpdateNotebook = (
   server.registerTool(
     'update_notebook',
     {
-      description: 'Update the title of an existing notebook',
+      description: 'Update the title and optionally parent of an existing notebook',
       inputSchema: paramsSchema,
     },
-    async ({ notebookId, title }) => {
+    async ({ notebookId, title, parentId }) => {
       try {
         const notebook = await context.client.updateNotebook(notebookId, {
           title,
+          ...(parentId !== undefined ? { parent_id: parentId } : {}),
         });
 
         return {

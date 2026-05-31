@@ -11,6 +11,7 @@ import {
   getEndCursor,
   resolvePagination,
 } from './pagination.js';
+import { formatTodoMetadataLines } from './todoUtils.js';
 
 const DEFAULT_FIRST = 20;
 
@@ -41,7 +42,7 @@ export const registerSearchNotes = (
         const results = await context.client.search(
           query,
           'note',
-          'id,title,body,parent_id,updated_time',
+          'id,title,body,parent_id,updated_time,is_todo,todo_due,todo_completed',
           {
             page: pagination.page,
             limit: pagination.limit,
@@ -57,10 +58,11 @@ export const registerSearchNotes = (
         });
 
         const formattedResults = results.items
-          .map(
-            (note) =>
-              `**${note.title}** (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}\nPreview: ${note.body ? note.body.substring(0, 100) : ''}...`,
-          )
+          .map((note) => {
+            const metadata = formatTodoMetadataLines(note).join('\n');
+            const preview = note.body ? note.body.substring(0, 100) : '';
+            return `**${note.title}** (ID: ${note.id})\n${metadata}\nUpdated: ${new Date(note.updated_time).toLocaleString()}\nPreview: ${preview}...`;
+          })
           .join('\n\n---\n\n');
 
         return {

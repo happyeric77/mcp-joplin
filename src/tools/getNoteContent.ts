@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 import { collectNoteImages } from './imageResourceUtils.js';
+import { formatTodoMetadataLines } from './todoUtils.js';
 
 const paramsSchema = {
   noteId: z.string().describe('The ID of the note to retrieve'),
@@ -28,8 +29,8 @@ export const registerGetNoteContent = (
     async ({ noteId, includeImages = true }) => {
       try {
         const note = await context.client.getNote(noteId);
-
-        let body = note.body ?? '';
+        const metadata = formatTodoMetadataLines(note).join('\n');
+        let body = `${metadata}\n\n---\n\n${note.body ?? ''}`;
 
         if (includeImages) {
           const images = await collectNoteImages(context, noteId);

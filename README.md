@@ -13,6 +13,7 @@ A Model Context Protocol (MCP) server that integrates with Joplin notes, allowin
 - 🔄 **Move Functionality**: Move notes to different notebooks
 - 📋 **Paginated Lists**: List notes with safe cursor-style pagination; no default full dumps
 - 🖼️ **Image Support**: List images attached to notes, retrieve image content, and attach local images to notes
+- ✅ **Native Todo Notes**: Create, list, search, complete, reopen, due-date, and conversion tools for Joplin todo-type notes
 
 ## Requirements
 
@@ -133,7 +134,7 @@ In `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ### Pagination rules
 
-The collection tools `search_notes`, `search_notebooks`, and `list_notes` use cursor-style pagination:
+The collection tools `search_notes`, `search_todo_notes`, `search_notebooks`, `list_notes`, and `list_todo_notes` use cursor-style pagination:
 
 - `first` is optional and defaults to a safe page size; it never means "all results".
 - `first` is capped at `100`.
@@ -161,6 +162,27 @@ Parameters:
 - query (string) - Search keywords
 - first (number, optional) - Page size (default: 20, max: 100); this never means all results
 - after (string, optional) - Opaque cursor from the previous page endCursor
+```
+
+Search results include native todo metadata (`Type`, `Status`, `Due`, `Completed`) when available.
+
+### 2.1. search_todo_notes
+
+Search native Joplin todo notes globally using Joplin todo search syntax. This is intentionally global and does not accept `notebookId`.
+
+```
+Parameters:
+- query (string, optional) - Additional global search query
+- status ("open" | "completed" | "all", optional) - Todo status filter (default: "open")
+- first (number, optional) - Page size (default: 20, max: 100)
+- after (string, optional) - Opaque cursor from the previous page endCursor
+```
+
+Examples:
+
+```
+search_todo_notes({ status: "open" })
+search_todo_notes({ query: "project-x", status: "all", first: 10 })
 ```
 
 ### 3. search_notebooks
@@ -193,7 +215,29 @@ Parameters:
 - after (string, optional) - Opaque cursor from the previous page endCursor
 ```
 
-### 5.1. list_sub_notebooks
+Note lists show native todo metadata for todo-type notes, including open/completed status and due dates.
+
+### 5.1. list_todo_notes
+
+List native Joplin todo notes under a notebook by stable notebook ID. Set `includeSubNotebooks` to scan child notebooks too. This does not use title-based `notebook:` search.
+
+```
+Parameters:
+- notebookId (string) - The ID of the notebook to list todo notes from
+- includeSubNotebooks (boolean, optional) - Include child notebooks (default: false)
+- status ("open" | "completed" | "all", optional) - Todo status filter (default: "open")
+- first (number, optional) - Page size (default: 50, max: 100)
+- after (string, optional) - Opaque scanner cursor from the previous page endCursor
+```
+
+Examples:
+
+```
+list_todo_notes({ notebookId: "abc123" })
+list_todo_notes({ notebookId: "abc123", includeSubNotebooks: true, status: "all" })
+```
+
+### 5.2. list_sub_notebooks
 
 List direct child notebooks within a specific notebook. This uses Joplin's folder tree hierarchy and is not cursor-paginated.
 
@@ -211,6 +255,25 @@ Parameters:
 - title (string) - Note title
 - body (string) - Note content (Markdown format)
 - notebookId (string, optional) - Target notebook ID
+```
+
+### 6.1. create_todo_note
+
+Create a native Joplin todo note. These are Joplin todo-type notes (`is_todo = 1`), not Markdown checkbox items.
+
+```
+Parameters:
+- title (string) - Todo title
+- body (string, optional) - Todo note body (Markdown format)
+- notebookId (string, optional) - Target notebook ID
+- dueAt (string, optional) - ISO date/time or millisecond timestamp
+- completedAt (string, optional) - ISO date/time or millisecond timestamp
+```
+
+Example:
+
+```
+create_todo_note({ title: "Review Phase 2", notebookId: "abc123", dueAt: "2026-06-01T09:00:00+09:00" })
 ```
 
 ### 7. create_notebook
@@ -287,12 +350,13 @@ Notes:
 
 ### 13. update_notebook
 
-Update an existing notebook title
+Update an existing notebook title and optionally move it under another notebook
 
 ```
 Parameters:
 - notebookId (string) - ID of the notebook to update
 - title (string) - New notebook title
+- parentId (string, optional) - New parent notebook ID
 ```
 
 ### 14. list_note_images
@@ -333,12 +397,35 @@ Parameters:
 
 Supported image types: PNG, JPEG, GIF, WebP. Max file size: 3MB. SVG is not supported.
 
+### 17. Native todo lifecycle and conversion tools
+
+These tools update Joplin native todo metadata directly. `todo_due = 0` means no due date; `todo_completed = 0` means open; non-zero `todo_completed` is a millisecond completion timestamp.
+
+```
+complete_todo_note({ noteId, completedAt? })
+reopen_todo_note({ noteId })
+set_todo_due({ noteId, dueAt })
+clear_todo_due({ noteId })
+convert_note_to_todo({ noteId, dueAt?, completedAt? })
+convert_todo_to_note({ noteId })
+```
+
+Examples:
+
+```
+complete_todo_note({ noteId: "todo123" })
+set_todo_due({ noteId: "todo123", dueAt: "2026-06-01T09:00:00+09:00" })
+convert_note_to_todo({ noteId: "note123", dueAt: "2026-06-01" })
+convert_todo_to_note({ noteId: "todo123" })
+```
+
 ## Editing Semantics
 
 - Use `update_note` to replace a note's title and/or body
 - Use `append_to_note` to add content to the end of a note while preserving existing content
 - Use `move_note` to change which notebook a note belongs to
 - Use `update_notebook` to rename a notebook
+- Use native todo tools for Joplin todo-type notes; Markdown checkbox scanning is not part of this server's todo operations
 
 ## Usage Examples
 

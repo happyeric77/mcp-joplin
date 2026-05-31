@@ -6,6 +6,7 @@ export interface JoplinNote {
   created_time: number;
   updated_time: number;
   is_todo: number;
+  todo_due: number;
   todo_completed: number;
   source_url?: string;
   author?: string;

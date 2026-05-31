@@ -11,6 +11,12 @@ import {
   getEndCursor,
   resolvePagination,
 } from './pagination.js';
+import {
+  formatTimestamp,
+  formatTodoIcon,
+  formatTodoStatus,
+  isTodoNote,
+} from './todoUtils.js';
 
 const DEFAULT_FIRST = 50;
 
@@ -39,7 +45,7 @@ export const registerListNotes = (
           scope: `list_notes:${notebookId}`,
         });
         const results = await context.client.getNotesInNotebook(notebookId, {
-          fields: 'id,title,updated_time,is_todo,todo_completed',
+          fields: 'id,title,updated_time,is_todo,todo_due,todo_completed',
           page: pagination.page,
           limit: pagination.limit,
         });
@@ -54,12 +60,27 @@ export const registerListNotes = (
 
         const formattedList = results.items
           .map((note) => {
-            const todoStatus = note.is_todo
-              ? note.todo_completed
-                ? ' ✅'
-                : ' ☐'
-              : '';
-            return `**${note.title}**${todoStatus} (ID: ${note.id})\nUpdated: ${new Date(note.updated_time).toLocaleString()}`;
+            const title = isTodoNote(note)
+              ? `${formatTodoIcon(note)} ${note.title}`
+              : note.title;
+            const lines = [`**${title}** (ID: ${note.id})`];
+
+            if (isTodoNote(note)) {
+              lines.push(`Status: ${formatTodoStatus(note)}`);
+              if (note.todo_completed > 0) {
+                lines.push(
+                  `Completed: ${formatTimestamp(note.todo_completed)}`
+                );
+              }
+              if (note.todo_due > 0) {
+                lines.push(`Due: ${formatTimestamp(note.todo_due)}`);
+              }
+            }
+
+            lines.push(
+              `Updated: ${new Date(note.updated_time).toLocaleString()}`
+            );
+            return lines.join('\n');
           })
           .join('\n\n---\n\n');
 
