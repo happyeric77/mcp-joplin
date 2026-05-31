@@ -1,16 +1,16 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { formatNotebookSummary } from './formatters.js';
 import {
   afterParamSchema,
   firstParamSchema,
   formatPaginationMetadata,
-  formatToolError,
   getEndCursor,
   resolvePagination,
 } from './pagination.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 const DEFAULT_FIRST = 20;
 
@@ -62,33 +62,14 @@ export const registerSearchNotebooks = (
         });
 
         const formattedResults = results.items
-          .map(
-            (notebook) =>
-              `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`,
-          )
+          .map(formatNotebookSummary)
           .join('\n\n---\n\n');
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `${paginationMetadata}\n\n${formattedResults || 'No notebooks found matching your query.'}`,
-            },
-          ],
-        };
+        return textResponse(
+          `${paginationMetadata}\n\n${formattedResults || 'No notebooks found matching your query.'}`,
+        );
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : formatToolError(error),
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

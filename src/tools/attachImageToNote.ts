@@ -3,20 +3,20 @@ import { realpathSync, statSync } from 'fs';
 import path from 'path';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import {
+  formatSupportedImageTypes,
+  mimeTypeFromFilePath,
+} from './imageResourceUtils.js';
+import {
+  errorResponse,
+  exceptionResponse,
+  textResponse,
+} from './toolResponse.js';
 
 const MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024;
 const DEFAULT_SEPARATOR = '\n\n';
 const BLOCKED_PATH_SEGMENTS = ['.env', '.ssh', 'id_rsa', 'keychain'];
-
-const mimeTypeByExtension: Record<string, string> = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-};
 
 const paramsSchema = {
   noteId: z.string().describe('The ID of the note to attach the image to'),
@@ -90,26 +90,10 @@ export const registerAttachImageToNote = (
             'code' in error &&
             error.code === 'ENOENT'
           ) {
-            return {
-              isError: true,
-              content: [
-                {
-                  type: 'text' as const,
-                  text: `Error: File does not exist: ${filePath}`,
-                },
-              ],
-            };
+            return errorResponse(`Error: File does not exist: ${filePath}`);
           }
 
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: Unable to access file: ${filePath}`,
-              },
-            ],
-          };
+          return errorResponse(`Error: Unable to access file: ${filePath}`);
         }
 
         const normalizedResolvedPathSegments = resolvedPath
@@ -122,56 +106,31 @@ export const registerAttachImageToNote = (
             normalizedResolvedPathSegments.includes(segment),
           )
         ) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: Access to sensitive path is not allowed: ${resolvedPath}`,
-              },
-            ],
-          };
+          return errorResponse(
+            `Error: Access to sensitive path is not allowed: ${resolvedPath}`,
+          );
         }
 
         const fileStats = statSync(resolvedPath);
 
         if (fileStats.isDirectory()) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: Path is a directory, not a file: ${resolvedPath}`,
-              },
-            ],
-          };
+          return errorResponse(
+            `Error: Path is a directory, not a file: ${resolvedPath}`,
+          );
         }
 
         if (fileStats.size > MAX_IMAGE_SIZE_BYTES) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: Image file exceeds 3MB limit: ${resolvedPath}`,
-              },
-            ],
-          };
+          return errorResponse(
+            `Error: Image file exceeds 3MB limit: ${resolvedPath}`,
+          );
         }
 
-        const extension = path.extname(resolvedPath).toLowerCase();
-        const mimeType = mimeTypeByExtension[extension];
+        const mimeType = mimeTypeFromFilePath(resolvedPath);
 
         if (!mimeType) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: Unsupported image type. Allowed types: image/png, image/jpeg, image/gif, image/webp.`,
-              },
-            ],
-          };
+          return errorResponse(
+            `Error: Unsupported image type. Allowed types: ${formatSupportedImageTypes()}.`,
+          );
         }
 
         await context.client.getNote(noteId, 'id,title');
@@ -201,43 +160,19 @@ export const registerAttachImageToNote = (
 
         await context.client.updateNote(noteId, { body: newBody });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Image attached successfully!\n\n**Note ID:** ${noteId}\n**Resource ID:** ${resource.id}\n**Markdown reference:** ${markdown}`,
-            },
-          ],
-        };
+        return textResponse(
+          `Image attached successfully!\n\n**Note ID:** ${noteId}\n**Resource ID:** ${resource.id}\n**Markdown reference:** ${markdown}`,
+        );
       } catch (error) {
         if (
           error instanceof Error &&
           'code' in error &&
           error.code === 'ENOENT'
         ) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: File does not exist: ${filePath}`,
-              },
-            ],
-          };
+          return errorResponse(`Error: File does not exist: ${filePath}`);
         }
 
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

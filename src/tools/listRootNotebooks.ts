@@ -1,7 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { formatNotebookSummary } from './formatters.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 export const registerListRootNotebooks = (
   server: McpServer,
@@ -18,33 +19,12 @@ export const registerListRootNotebooks = (
         const notebooks = await context.client.getNotebookTree();
 
         const formattedList = notebooks
-          .map(
-            (notebook) =>
-              `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`,
-          )
+          .map(formatNotebookSummary)
           .join('\n\n---\n\n');
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: formattedList || 'No root notebooks found.',
-            },
-          ],
-        };
+        return textResponse(formattedList || 'No root notebooks found.');
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

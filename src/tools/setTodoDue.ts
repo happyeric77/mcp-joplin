@@ -1,14 +1,14 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 import {
-  TODO_METADATA_FIELDS,
-  assertTodoNote,
   formatTimestamp,
+  getTodoMetadataNote,
   parseDateToMs,
+  updateTodoMetadata,
 } from './todoUtils.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 const paramsSchema = {
   noteId: z.string().describe('The ID of the todo note to update'),
@@ -27,11 +27,10 @@ export const registerSetTodoDue = (
     paramsSchema,
     async ({ noteId, dueAt }) => {
       try {
-        const note = await context.client.getNote(noteId, TODO_METADATA_FIELDS);
-        assertTodoNote(note);
+        const note = await getTodoMetadataNote(context, noteId);
 
         const dueTimestamp = parseDateToMs(dueAt);
-        await context.client.updateNote(noteId, { todo_due: dueTimestamp });
+        await updateTodoMetadata(context, noteId, { todo_due: dueTimestamp });
 
         const responseText = [
           'Todo due date set successfully!',
@@ -41,27 +40,9 @@ export const registerSetTodoDue = (
           `**Due:** ${formatTimestamp(dueTimestamp)}`,
         ].join('\n');
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: responseText,
-            },
-          ],
-        };
+        return textResponse(responseText);
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

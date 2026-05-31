@@ -1,8 +1,14 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError, type JoplinNotebook } from '../client/index.js';
+import type { JoplinNotebook } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { formatNotebookSummary } from './formatters.js';
+import {
+  errorResponse,
+  exceptionResponse,
+  textResponse,
+} from './toolResponse.js';
 
 const findNotebookById = (
   notebooks: JoplinNotebook[],
@@ -44,47 +50,22 @@ export const registerListSubNotebooks = (
         const parentNotebook = findNotebookById(notebookTree, parentNotebookId);
 
         if (!parentNotebook) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: `Notebook with ID ${parentNotebookId} not found.`,
-              },
-            ],
-          };
+          return errorResponse(
+            `Notebook with ID ${parentNotebookId} not found.`,
+          );
         }
 
         const subNotebooks = parentNotebook.children ?? [];
 
         const formattedList = subNotebooks
-          .map(
-            (notebook) =>
-              `**${notebook.title}** (ID: ${notebook.id})\nCreated: ${new Date(notebook.created_time).toLocaleString()}`,
-          )
+          .map(formatNotebookSummary)
           .join('\n\n---\n\n');
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: formattedList || 'No sub-notebooks found in this notebook.',
-            },
-          ],
-        };
+        return textResponse(
+          formattedList || 'No sub-notebooks found in this notebook.',
+        );
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

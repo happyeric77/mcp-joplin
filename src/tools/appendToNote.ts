@@ -1,8 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 const paramsSchema = {
   noteId: z.string().describe('The ID of the note to append content to'),
@@ -47,27 +47,11 @@ export const registerAppendToNote = (
           body: newBody,
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Content appended successfully!\n\n**Title:** ${updatedNote.title}\n**ID:** ${updatedNote.id}\n**Appended content length:** ${content.length} characters`,
-            },
-          ],
-        };
+        return textResponse(
+          `Content appended successfully!\n\n**Title:** ${updatedNote.title}\n**ID:** ${updatedNote.id}\n**Appended content length:** ${content.length} characters`,
+        );
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

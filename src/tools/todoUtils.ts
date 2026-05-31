@@ -1,4 +1,5 @@
 import type { JoplinNote } from '../client/index.js';
+import type { JoplinMcpContext } from '../context.js';
 
 export const TODO_STATUS_VALUES = ['open', 'completed', 'all'] as const;
 
@@ -6,6 +7,9 @@ export type TodoStatus = (typeof TODO_STATUS_VALUES)[number];
 
 type TodoMetadata = Pick<JoplinNote, 'is_todo' | 'todo_due' | 'todo_completed'>;
 type TodoIdentity = Pick<JoplinNote, 'id' | 'title' | 'is_todo'>;
+type TodoMetadataPatch = Partial<
+  Pick<JoplinNote, 'is_todo' | 'todo_due' | 'todo_completed'>
+>;
 
 const TODO_METADATA_FIELD_LIST = [
   'id',
@@ -100,6 +104,30 @@ export const assertRegularNote = (note: TodoIdentity): void => {
     );
   }
 };
+
+export const getTodoMetadataNote = async (
+  context: JoplinMcpContext,
+  noteId: string,
+): Promise<JoplinNote> => {
+  const note = await context.client.getNote(noteId, TODO_METADATA_FIELDS);
+  assertTodoNote(note);
+  return note;
+};
+
+export const getRegularMetadataNote = async (
+  context: JoplinMcpContext,
+  noteId: string,
+): Promise<JoplinNote> => {
+  const note = await context.client.getNote(noteId, TODO_METADATA_FIELDS);
+  assertRegularNote(note);
+  return note;
+};
+
+export const updateTodoMetadata = async (
+  context: JoplinMcpContext,
+  noteId: string,
+  patch: TodoMetadataPatch,
+): Promise<JoplinNote> => context.client.updateNote(noteId, patch);
 
 export const matchesTodoStatus = (
   note: TodoMetadata,

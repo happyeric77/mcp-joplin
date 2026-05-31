@@ -1,22 +1,16 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { formatNoteListItem } from './formatters.js';
 import {
   afterParamSchema,
   firstParamSchema,
   formatPaginationMetadata,
-  formatToolError,
   getEndCursor,
   resolvePagination,
 } from './pagination.js';
-import {
-  formatTimestamp,
-  formatTodoIcon,
-  formatTodoStatus,
-  isTodoNote,
-} from './todoUtils.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 const DEFAULT_FIRST = 50;
 
@@ -59,52 +53,14 @@ export const registerListNotes = (
         });
 
         const formattedList = results.items
-          .map((note) => {
-            const title = isTodoNote(note)
-              ? `${formatTodoIcon(note)} ${note.title}`
-              : note.title;
-            const lines = [`**${title}** (ID: ${note.id})`];
-
-            if (isTodoNote(note)) {
-              lines.push(`Status: ${formatTodoStatus(note)}`);
-              if (note.todo_completed > 0) {
-                lines.push(
-                  `Completed: ${formatTimestamp(note.todo_completed)}`,
-                );
-              }
-              if (note.todo_due > 0) {
-                lines.push(`Due: ${formatTimestamp(note.todo_due)}`);
-              }
-            }
-
-            lines.push(
-              `Updated: ${new Date(note.updated_time).toLocaleString()}`,
-            );
-            return lines.join('\n');
-          })
+          .map(formatNoteListItem)
           .join('\n\n---\n\n');
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `${paginationMetadata}\n\n${formattedList || 'No notes found in this notebook.'}`,
-            },
-          ],
-        };
+        return textResponse(
+          `${paginationMetadata}\n\n${formattedList || 'No notes found in this notebook.'}`,
+        );
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : formatToolError(error),
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

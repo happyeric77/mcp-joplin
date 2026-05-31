@@ -190,8 +190,3 @@ export const formatPaginationMetadata = ({
 
   return lines.join('\n');
 };
-
-export const formatToolError = (error: unknown): string =>
-  error instanceof InvalidPaginationError
-    ? `Pagination Error: ${error.message}`
-    : `Error: ${error instanceof Error ? error.message : String(error)}`;

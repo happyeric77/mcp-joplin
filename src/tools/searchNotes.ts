@@ -1,17 +1,16 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { formatNoteSearchResult } from './formatters.js';
 import {
   afterParamSchema,
   firstParamSchema,
   formatPaginationMetadata,
-  formatToolError,
   getEndCursor,
   resolvePagination,
 } from './pagination.js';
-import { formatTodoMetadataLines } from './todoUtils.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 const DEFAULT_FIRST = 20;
 
@@ -58,34 +57,14 @@ export const registerSearchNotes = (
         });
 
         const formattedResults = results.items
-          .map((note) => {
-            const metadata = formatTodoMetadataLines(note).join('\n');
-            const preview = note.body ? note.body.substring(0, 100) : '';
-            return `**${note.title}** (ID: ${note.id})\n${metadata}\nUpdated: ${new Date(note.updated_time).toLocaleString()}\nPreview: ${preview}...`;
-          })
+          .map(formatNoteSearchResult)
           .join('\n\n---\n\n');
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `${paginationMetadata}\n\n${formattedResults || 'No notes found matching your query.'}`,
-            },
-          ],
-        };
+        return textResponse(
+          `${paginationMetadata}\n\n${formattedResults || 'No notes found matching your query.'}`,
+        );
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : formatToolError(error),
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

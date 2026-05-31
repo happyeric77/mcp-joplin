@@ -19,6 +19,22 @@ export const JOPLIN_IMAGE_MIME_TYPES = new Set<string>([
   'image/webp',
 ]);
 
+const extensionToMime: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+};
+
+export const formatSupportedImageTypes = (): string =>
+  'image/png, image/jpeg, image/gif, image/webp';
+
+export const mimeTypeFromFilePath = (filePath: string): string | null => {
+  const ext = extractExtension(filePath);
+  return ext ? extensionToMime[ext] || null : null;
+};
+
 export const isSupportedImageResource = (resource: ResourceLike): boolean => {
   if (resource.mime && JOPLIN_IMAGE_MIME_TYPES.has(resource.mime)) {
     return true;
@@ -44,14 +60,6 @@ export const isSupportedImageResource = (resource: ResourceLike): boolean => {
 
 export const normalizeImageMimeType = (mime: string): string =>
   mime === 'image/jpg' ? 'image/jpeg' : mime;
-
-const extensionToMime: Record<string, string> = {
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  gif: 'image/gif',
-  webp: 'image/webp',
-};
 
 const extractExtension = (str: string): string | null => {
   const match = str.match(/\.(\w+)$/);

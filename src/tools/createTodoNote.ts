@@ -1,13 +1,14 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError, type JoplinNote } from '../client/index.js';
+import type { JoplinNote } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 import {
   formatTimestamp,
   formatTodoStatus,
   parseDateToMs,
 } from './todoUtils.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 const paramsSchema = {
   title: z.string().describe('The title of the new todo note'),
@@ -73,27 +74,9 @@ export const registerCreateTodoNote = (
           `**Created:** ${new Date(note.created_time).toLocaleString()}`,
         ].join('\n');
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: responseText,
-            },
-          ],
-        };
+        return textResponse(responseText);
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

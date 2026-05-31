@@ -1,8 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 export const registerDeleteNotebook = (
   server: McpServer,
@@ -27,27 +27,9 @@ export const registerDeleteNotebook = (
         await context.client.deleteNotebook(notebookId, permanent);
 
         const action = permanent ? 'permanently deleted' : 'moved to trash';
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Notebook ${action} successfully.`,
-            },
-          ],
-        };
+        return textResponse(`Notebook ${action} successfully.`);
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

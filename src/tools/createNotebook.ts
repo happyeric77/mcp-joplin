@@ -1,8 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 export const registerCreateNotebook = (
   server: McpServer,
@@ -31,27 +31,11 @@ export const registerCreateNotebook = (
 
         const notebook = await context.client.createNotebook(notebookData);
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Notebook created successfully!\n\n**Title:** ${notebook.title}\n**ID:** ${notebook.id}\n**Created:** ${new Date(notebook.created_time).toLocaleString()}`,
-            },
-          ],
-        };
+        return textResponse(
+          `Notebook created successfully!\n\n**Title:** ${notebook.title}\n**ID:** ${notebook.id}\n**Created:** ${new Date(notebook.created_time).toLocaleString()}`,
+        );
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );
