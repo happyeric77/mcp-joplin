@@ -6,6 +6,7 @@ export interface JoplinNote {
   created_time: number;
   updated_time: number;
   is_todo: number;
+  todo_due: number;
   todo_completed: number;
   source_url?: string;
   author?: string;
@@ -47,10 +48,22 @@ export interface JoplinResource {
   updated_time?: number;
 }
 
-export interface JoplinSearchResult {
-  items: (JoplinNote | JoplinNotebook | JoplinTag)[];
+export interface JoplinPageOptions {
+  fields?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface JoplinCollectionPage<T> {
+  items: T[];
   has_more: boolean;
 }
+
+export type JoplinSearchItem = JoplinNote | JoplinNotebook | JoplinTag;
+
+export type JoplinSearchType = 'note' | 'folder' | 'tag';
+
+export type JoplinSearchResult = JoplinCollectionPage<JoplinSearchItem>;
 
 export interface JoplinApiOptions {
   baseUrl?: string;

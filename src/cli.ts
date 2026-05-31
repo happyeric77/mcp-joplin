@@ -19,7 +19,11 @@ program
     '--port <port>',
     'Joplin Web Clipper port (overrides JOPLIN_PORT env)'
   )
-  .action(async (opts: { token?: string; port?: string }) => {
+  .option(
+    '--base-url <url>',
+    'Joplin API base URL (overrides JOPLIN_BASE_URL env, e.g. http://host:41184)'
+  )
+  .action(async (opts: { token?: string; port?: string; baseUrl?: string }) => {
     const config = resolveConfig(opts);
 
     try {

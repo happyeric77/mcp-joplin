@@ -4,19 +4,21 @@ A Model Context Protocol (MCP) server that integrates with Joplin notes, allowin
 
 ## Features
 
-- 🔍 **Search Functionality**: Search notes and notebooks
+- 🔍 **Search Functionality**: Search notes and notebooks page-by-page
 - 📖 **Content Reading**: Get complete content of specific notes
+- 🧭 **Notebook Navigation**: Navigate root notebooks and direct child notebooks
 - 📝 **Creation Features**: Create new notes and notebooks
 - ✏️ **Update/Edit Features**: Update note content, append to notes, and rename notebooks
 - 🗑️ **Deletion Features**: Delete notes and notebooks (supports trash or permanent deletion)
 - 🔄 **Move Functionality**: Move notes to different notebooks
-- 📋 **List Functionality**: List all notebooks and notes within specific notebooks
+- 📋 **Paginated Lists**: List notes with safe cursor-style pagination; no default full dumps
 - 🖼️ **Image Support**: List images attached to notes, retrieve image content, and attach local images to notes
+- ✅ **Native Todo Notes**: Create, list, search, complete, reopen, due-date, and conversion tools for Joplin todo-type notes
 
 ## Requirements
 
 1. **Joplin Desktop** - Ensure it's installed and running
-2. **Node.js 18+** - Required to run the MCP server
+2. **Node.js 20** - Required to run the MCP server
 3. **Web Clipper Enabled** - Enable Web Clipper service in Joplin
 
 ## Installation & Setup
@@ -54,6 +56,9 @@ npm start -- --port 41184
 # Or specify token (if needed)
 npm start -- --token YOUR_API_TOKEN
 
+# Or specify a full Joplin API base URL instead of auto-discovered localhost port
+npm start -- --base-url http://localhost:41184
+
 # View help
 npm start -- --help
 ```
@@ -69,6 +74,9 @@ npx mcp-joplin
 
 # Or run locally
 npx . --port 41184
+
+# Or connect to a specific Joplin API base URL
+npx . --base-url http://localhost:41184
 ```
 
 ## MCP Client Configuration
@@ -99,6 +107,7 @@ This MCP server requires a Joplin API token to function properly:
 ```
 
 > 💡 **Important**: The API token is required for this MCP server to work properly.
+> Use `--base-url` instead of `--port` when the Joplin API is exposed at a specific URL, for example through a tunnel or non-local host. `--base-url` can also be set with `JOPLIN_BASE_URL`.
 
 ### Claude Desktop Configuration Example
 
@@ -123,6 +132,17 @@ In `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ## Available MCP Tools
 
+### Pagination rules
+
+The collection tools `search_notes`, `search_todo_notes`, `search_notebooks`, `list_notes`, and `list_todo_notes` use cursor-style pagination:
+
+- `first` is optional and defaults to a safe page size; it never means "all results".
+- `first` is capped at `100`.
+- `after` is an opaque cursor returned as `endCursor` by the previous page.
+- Responses include `pageInfo` metadata: `returnedCount`, `pageSize`, `hasNextPage`, and `endCursor` when another page exists.
+- Cursors are scoped to the original request parameters. Use `endCursor` only with the same tool arguments.
+- If `hasNextPage` is `true`, the response is incomplete. Continue with `after=endCursor` before concluding coverage.
+
 ### 1. get_note_content
 
 Get the complete content of a specific note
@@ -135,25 +155,50 @@ Parameters:
 
 ### 2. search_notes
 
-Search for notes
+Search one paginated page of notes
 
 ```
 Parameters:
 - query (string) - Search keywords
-- limit (number, optional) - Result limit (default: 20)
+- first (number, optional) - Page size (default: 20, max: 100); this never means all results
+- after (string, optional) - Opaque cursor from the previous page endCursor
+```
+
+Search results include native todo metadata (`Type`, `Status`, `Due`, `Completed`) when available.
+
+### 2.1. search_todo_notes
+
+Search native Joplin todo notes globally using Joplin todo search syntax. This is intentionally global and does not accept `notebookId`.
+
+```
+Parameters:
+- query (string, optional) - Additional global search query
+- status ("open" | "completed" | "all", optional) - Todo status filter (default: "open")
+- first (number, optional) - Page size (default: 20, max: 100)
+- after (string, optional) - Opaque cursor from the previous page endCursor
+```
+
+Examples:
+
+```
+search_todo_notes({ status: "open" })
+search_todo_notes({ query: "project-x", status: "all", first: 10 })
 ```
 
 ### 3. search_notebooks
 
-Search for notebooks
+Search one paginated page of notebooks
 
 ```
-Parameters: query (string) - Search keywords
+Parameters:
+- query (string) - Search keywords using Joplin folder search syntax. Use `*` for wildcard/prefix matches, e.g. `archive*` matches `archive-250124`; plain `archive` only matches a notebook titled exactly `archive`.
+- first (number, optional) - Page size (default: 20, max: 100); this never means all results
+- after (string, optional) - Opaque cursor from the previous page endCursor
 ```
 
-### 4. list_notebooks
+### 4. list_root_notebooks
 
-List all notebooks
+List top-level/root notebooks from the Joplin folder tree
 
 ```
 Parameters: None
@@ -161,17 +206,40 @@ Parameters: None
 
 ### 5. list_notes
 
-List notes in a specific notebook
+List one paginated page of notes in a specific notebook
 
 ```
 Parameters:
 - notebookId (string) - The ID of the notebook
-- limit (number, optional) - Result limit (default: 50)
+- first (number, optional) - Page size (default: 50, max: 100); this never means all results
+- after (string, optional) - Opaque cursor from the previous page endCursor
 ```
 
-### 5.1. list_sub_notebooks
+Note lists show native todo metadata for todo-type notes, including open/completed status and due dates.
 
-List sub-notebooks within a specific notebook
+### 5.1. list_todo_notes
+
+List native Joplin todo notes under a notebook by stable notebook ID. Set `includeSubNotebooks` to scan child notebooks too. This does not use title-based `notebook:` search.
+
+```
+Parameters:
+- notebookId (string) - The ID of the notebook to list todo notes from
+- includeSubNotebooks (boolean, optional) - Include child notebooks (default: false)
+- status ("open" | "completed" | "all", optional) - Todo status filter (default: "open")
+- first (number, optional) - Page size (default: 50, max: 100)
+- after (string, optional) - Opaque scanner cursor from the previous page endCursor
+```
+
+Examples:
+
+```
+list_todo_notes({ notebookId: "abc123" })
+list_todo_notes({ notebookId: "abc123", includeSubNotebooks: true, status: "all" })
+```
+
+### 5.2. list_sub_notebooks
+
+List direct child notebooks within a specific notebook. This uses Joplin's folder tree hierarchy and is not cursor-paginated.
 
 ```
 Parameters:
@@ -187,6 +255,25 @@ Parameters:
 - title (string) - Note title
 - body (string) - Note content (Markdown format)
 - notebookId (string, optional) - Target notebook ID
+```
+
+### 6.1. create_todo_note
+
+Create a native Joplin todo note. These are Joplin todo-type notes (`is_todo = 1`), not Markdown checkbox items.
+
+```
+Parameters:
+- title (string) - Todo title
+- body (string, optional) - Todo note body (Markdown format)
+- notebookId (string, optional) - Target notebook ID
+- dueAt (string, optional) - ISO date/time or millisecond timestamp
+- completedAt (string, optional) - ISO date/time or millisecond timestamp
+```
+
+Example:
+
+```
+create_todo_note({ title: "Review Phase 2", notebookId: "abc123", dueAt: "2026-06-01T09:00:00+09:00" })
 ```
 
 ### 7. create_notebook
@@ -263,25 +350,16 @@ Notes:
 
 ### 13. update_notebook
 
-Update an existing notebook title
+Update an existing notebook title and optionally move it under another notebook
 
 ```
 Parameters:
 - notebookId (string) - ID of the notebook to update
 - title (string) - New notebook title
+- parentId (string, optional) - New parent notebook ID
 ```
 
-### 14. scan_unchecked_items
-
-Scan notebooks and sub-notebooks for uncompleted todo items (- [ ])
-
-```
-Parameters:
-- notebookId (string) - ID of the notebook to scan
-- includeSubNotebooks (boolean, optional) - Whether to recursively scan sub-notebooks (default: true)
-```
-
-### 15. list_note_images
+### 14. list_note_images
 
 List image resources attached to a specific note. Supports both Joplin API resource index and note body markdown image reference parsing.
 
@@ -292,7 +370,7 @@ Parameters:
 
 Returns a JSON array with image id, title, mime type, file size, and markdown reference.
 
-### 16. get_note_image
+### 15. get_note_image
 
 Retrieve an image resource from Joplin by resource ID and return the image content directly.
 
@@ -303,7 +381,7 @@ Parameters:
 
 Supported image types: PNG, JPEG, GIF, WebP.
 
-### 17. attach_image_to_note
+### 16. attach_image_to_note
 
 Attach a local image file to a Joplin note and insert a markdown image reference into the note body.
 
@@ -319,12 +397,35 @@ Parameters:
 
 Supported image types: PNG, JPEG, GIF, WebP. Max file size: 3MB. SVG is not supported.
 
+### 17. Native todo lifecycle and conversion tools
+
+These tools update Joplin native todo metadata directly. `todo_due = 0` means no due date; `todo_completed = 0` means open; non-zero `todo_completed` is a millisecond completion timestamp.
+
+```
+complete_todo_note({ noteId, completedAt? })
+reopen_todo_note({ noteId })
+set_todo_due({ noteId, dueAt })
+clear_todo_due({ noteId })
+convert_note_to_todo({ noteId, dueAt?, completedAt? })
+convert_todo_to_note({ noteId })
+```
+
+Examples:
+
+```
+complete_todo_note({ noteId: "todo123" })
+set_todo_due({ noteId: "todo123", dueAt: "2026-06-01T09:00:00+09:00" })
+convert_note_to_todo({ noteId: "note123", dueAt: "2026-06-01" })
+convert_todo_to_note({ noteId: "todo123" })
+```
+
 ## Editing Semantics
 
 - Use `update_note` to replace a note's title and/or body
 - Use `append_to_note` to add content to the end of a note while preserving existing content
 - Use `move_note` to change which notebook a note belongs to
 - Use `update_notebook` to rename a notebook
+- Use native todo tools for Joplin todo-type notes; Markdown checkbox scanning is not part of this server's todo operations
 
 ## Usage Examples
 
@@ -333,12 +434,13 @@ Supported image types: PNG, JPEG, GIF, WebP. Max file size: 3MB. SVG is not supp
 ```
 You: "Search for notes containing 'Python'"
 AI: Using search_notes tool to search for relevant notes...
+AI: If pageInfo.hasNextPage is true, continue with after=endCursor before summarizing all matches.
 
 You: "Create a new notebook called 'Learning Plan'"
 AI: Using create_notebook tool to create a new notebook...
 
 You: "Create a note about JavaScript in the Learning Plan notebook"
-AI: Using list_notebooks to find the notebook ID, then using create_note to create the note...
+AI: Using list_root_notebooks and list_sub_notebooks to navigate to the notebook ID, then using create_note to create the note...
 
 You: "Show the complete content of a specific note"
 AI: Using get_note_content tool to retrieve note content...
@@ -360,9 +462,6 @@ AI: Using get_note_image tool to retrieve and display the image...
 
 You: "Attach this screenshot to note abc123"
 AI: Using attach_image_to_note tool to upload the image and embed it in the note...
-
-You: "Scan my project notebook for all uncompleted todo items"
-AI: Using scan_unchecked_items tool to scan all sub-notebooks...
 ```
 
 ## Troubleshooting
@@ -421,9 +520,11 @@ npm run prepublishOnly
 
 ### Technical Details
 
-- **Notebook Search**: Due to limitations in Joplin's search API for folder searches, we use client-side filtering to implement notebook search functionality
-- **Pagination Handling**: Automatically handles Joplin API's pagination mechanism (default 100 items per page), ensuring complete notebook and note lists are retrieved, solving the issue of incomplete sub-notebook display
-- **Error Handling**: Complete error handling mechanism, including Joplin API errors and network connection errors
+- **Pagination Handling**: Collection tools request one Joplin page at a time using native `page` / `limit` parameters. They expose MCP-friendly `first` / `after` inputs and opaque cursors.
+- **No Full-Dump Defaults**: The server does not fetch every note or notebook by default, and it does not expose legacy full-dump resources.
+- **Notebook Search**: Uses Joplin's `/search` endpoint with `type=folder` and page-based pagination.
+- **Notebook Navigation**: Uses Joplin's folder tree for `list_root_notebooks` and direct-child `list_sub_notebooks` navigation; tree navigation is not fake-paginated.
+- **Error Handling**: Complete error handling mechanism, including Joplin API errors, invalid pagination cursors, and network connection errors
 - **Auto-detection**: Supports automatic detection of Joplin Web Clipper port (41184-41194)
 
 ## License

@@ -1,12 +1,16 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 const paramsSchema = {
   notebookId: z.string().describe('The ID of the notebook to update'),
   title: z.string().describe('The new title for the notebook'),
+  parentId: z
+    .string()
+    .optional()
+    .describe('The ID of the new parent notebook (optional)'),
 };
 
 export const registerUpdateNotebook = (
@@ -16,36 +20,22 @@ export const registerUpdateNotebook = (
   server.registerTool(
     'update_notebook',
     {
-      description: 'Update the title of an existing notebook',
+      description:
+        'Update the title and optionally parent of an existing notebook',
       inputSchema: paramsSchema,
     },
-    async ({ notebookId, title }) => {
+    async ({ notebookId, title, parentId }) => {
       try {
         const notebook = await context.client.updateNotebook(notebookId, {
           title,
+          ...(parentId !== undefined ? { parent_id: parentId } : {}),
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Notebook updated successfully!\n\n**Title:** ${notebook.title}\n**ID:** ${notebook.id}`,
-            },
-          ],
-        };
+        return textResponse(
+          `Notebook updated successfully!\n\n**Title:** ${notebook.title}\n**ID:** ${notebook.id}`,
+        );
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

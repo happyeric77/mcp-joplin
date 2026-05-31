@@ -1,12 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 import {
   inferImageMimeType,
   isSupportedImageResource,
 } from './imageResourceUtils.js';
+import { errorResponse, exceptionResponse } from './toolResponse.js';
 
 const paramsSchema = {
   resourceId: z.string().describe('The ID of the image resource to retrieve'),
@@ -27,30 +27,18 @@ export const registerGetNoteImage = (
         const resource = await context.client.getResource(resourceId);
 
         if (!isSupportedImageResource(resource)) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: Resource ${resourceId} is not a supported image type.`,
-              },
-            ],
-          };
+          return errorResponse(
+            `Error: Resource ${resourceId} is not a supported image type.`,
+          );
         }
 
         const resourceFile = await context.client.getResourceFile(resourceId);
         const mimeType = inferImageMimeType(resource);
 
         if (!mimeType) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: Unable to determine MIME type for resource ${resourceId}.`,
-              },
-            ],
-          };
+          return errorResponse(
+            `Error: Unable to determine MIME type for resource ${resourceId}.`,
+          );
         }
 
         return {
@@ -63,18 +51,7 @@ export const registerGetNoteImage = (
           ],
         };
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

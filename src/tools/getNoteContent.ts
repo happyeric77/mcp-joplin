@@ -1,9 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
 import { collectNoteImages } from './imageResourceUtils.js';
+import { formatTodoMetadataLines } from './todoUtils.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 const paramsSchema = {
   noteId: z.string().describe('The ID of the note to retrieve'),
@@ -28,8 +29,8 @@ export const registerGetNoteContent = (
     async ({ noteId, includeImages = true }) => {
       try {
         const note = await context.client.getNote(noteId);
-
-        let body = note.body ?? '';
+        const metadata = formatTodoMetadataLines(note).join('\n');
+        let body = `${metadata}\n\n---\n\n${note.body ?? ''}`;
 
         if (includeImages) {
           const images = await collectNoteImages(context, noteId);
@@ -46,24 +47,9 @@ export const registerGetNoteContent = (
           }
         }
 
-        return {
-          content: [
-            { type: 'text' as const, text: `# ${note.title}\n\n${body}` },
-          ],
-        };
+        return textResponse(`# ${note.title}\n\n${body}`);
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

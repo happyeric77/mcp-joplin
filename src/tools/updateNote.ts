@@ -1,8 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import {
+  errorResponse,
+  exceptionResponse,
+  textResponse,
+} from './toolResponse.js';
 
 const paramsSchema = {
   noteId: z.string().describe('The ID of the note to update'),
@@ -32,15 +36,9 @@ export const registerUpdateNote = (
     async ({ noteId, title, body }) => {
       try {
         if (title === undefined && body === undefined) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text' as const,
-                text: 'Error: At least one of title or body must be provided.',
-              },
-            ],
-          };
+          return errorResponse(
+            'Error: At least one of title or body must be provided.',
+          );
         }
 
         const updateData: Record<string, unknown> = {};
@@ -57,27 +55,11 @@ export const registerUpdateNote = (
 
         const note = await context.client.updateNote(noteId, updateData);
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Note updated successfully!\n\n**Title:** ${note.title}\n**ID:** ${note.id}\n**Updated:** ${new Date(note.updated_time).toLocaleString()}\n**Fields updated:** ${updatedFields.join(', ')}`,
-            },
-          ],
-        };
+        return textResponse(
+          `Note updated successfully!\n\n**Title:** ${note.title}\n**ID:** ${note.id}\n**Updated:** ${new Date(note.updated_time).toLocaleString()}\n**Fields updated:** ${updatedFields.join(', ')}`,
+        );
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );

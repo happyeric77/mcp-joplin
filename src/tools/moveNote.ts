@@ -1,8 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { JoplinApiError } from '../client/index.js';
 import type { JoplinMcpContext } from '../context.js';
+import { exceptionResponse, textResponse } from './toolResponse.js';
 
 export const registerMoveNote = (
   server: McpServer,
@@ -23,27 +23,11 @@ export const registerMoveNote = (
           parent_id: targetNotebookId,
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Note moved successfully to notebook ${targetNotebookId}.`,
-            },
-          ],
-        };
+        return textResponse(
+          `Note moved successfully to notebook ${targetNotebookId}.`,
+        );
       } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                error instanceof JoplinApiError
-                  ? `Joplin API Error: ${error.message}`
-                  : `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return exceptionResponse(error);
       }
     },
   );
