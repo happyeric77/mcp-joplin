@@ -234,11 +234,42 @@ export class JoplinClient {
   // ── Notebooks (Folders) ─────────────────────────────────────────────
 
   async getNotebookTree(): Promise<JoplinNotebook[]> {
-    const response =
-      await this.client.get<JoplinCollectionResponse<JoplinNotebook>>(
-        '/folders',
-      );
-    return this.getCollectionItems(response.data);
+    const notebooks: JoplinNotebook[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await this.client.get<
+        JoplinCollectionResponse<JoplinNotebook>
+      >('/folders', { params: { page } });
+
+      notebooks.push(...this.getCollectionItems(response.data));
+      hasMore =
+        !Array.isArray(response.data) && response.data.has_more === true;
+      page += 1;
+    }
+
+    const notebooksById = new Map<string, JoplinNotebook>();
+    const rootNotebooks: JoplinNotebook[] = [];
+
+    for (const notebook of notebooks) {
+      notebooksById.set(notebook.id, { ...notebook, children: [] });
+    }
+
+    for (const notebook of notebooksById.values()) {
+      if (!notebook.parent_id) {
+        rootNotebooks.push(notebook);
+        continue;
+      }
+
+      const parentNotebook = notebooksById.get(notebook.parent_id);
+      if (parentNotebook) {
+        parentNotebook.children = parentNotebook.children ?? [];
+        parentNotebook.children.push(notebook);
+      }
+    }
+
+    return rootNotebooks;
   }
 
   async getNotebook(id: string): Promise<JoplinNotebook> {
