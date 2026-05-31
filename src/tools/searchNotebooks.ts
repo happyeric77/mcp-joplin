@@ -18,7 +18,7 @@ const paramsSchema = {
   query: z
     .string()
     .describe(
-      'Search query string for notebook names. Joplin folder search uses * as a wildcard; use archive* for prefix matches like archive-250124.',
+      'Search query string for notebook names. Joplin folder search uses * as a wildcard. If the query does not already contain *, it is automatically wrapped as *query* for substring matching.',
     ),
   first: firstParamSchema(DEFAULT_FIRST),
   after: afterParamSchema,
@@ -32,19 +32,20 @@ export const registerSearchNotebooks = (
     'search_notebooks',
     {
       description:
-        'Search one paginated page of notebooks by name using Joplin folder search syntax. Use * for wildcard/prefix matches, e.g. archive*.',
+        'Search one paginated page of notebooks by name using Joplin folder search syntax. Queries without * are automatically wrapped as *query* for substring matching. Use explicit * to control wildcard position, e.g. archive*.',
       inputSchema: paramsSchema,
     },
     async ({ query, first, after }) => {
       try {
+        const effectiveQuery = query.includes('*') ? query : `*${query}*`;
         const pagination = resolvePagination({
           first,
           after,
           defaultFirst: DEFAULT_FIRST,
-          scope: `search_notebooks:${query}`,
+          scope: `search_notebooks:${effectiveQuery}`,
         });
         const results = await context.client.search(
-          query,
+          effectiveQuery,
           'folder',
           'id,title,created_time,updated_time,parent_id',
           {

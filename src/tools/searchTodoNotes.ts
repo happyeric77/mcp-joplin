@@ -21,7 +21,12 @@ const DEFAULT_FIRST = 20;
 const DEFAULT_STATUS: TodoStatus = 'open';
 
 const paramsSchema = {
-  query: z.string().optional().describe('Optional global search query string'),
+  query: z
+    .string()
+    .optional()
+    .describe(
+      'Optional global search query string. Uses SQLite FTS4 which tokenizes on non-alphanumeric characters including emoji — avoid prefixing queries with emoji or special characters. Search by keywords for best results.',
+    ),
   status: z
     .enum(TODO_STATUS_VALUES)
     .optional()
@@ -56,7 +61,7 @@ export const registerSearchTodoNotes = (
 ): void => {
   server.tool(
     'search_todo_notes',
-    'Search one paginated page of native Joplin todo notes globally',
+    'Search one paginated page of native Joplin todo notes globally. Uses SQLite FTS4 which tokenizes on non-alphanumeric characters including emoji — search by keywords for best results.',
     paramsSchema,
     async ({ query, status, first, after }) => {
       try {
