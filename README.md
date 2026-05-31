@@ -143,6 +143,21 @@ The collection tools `search_notes`, `search_todo_notes`, `search_notebooks`, `l
 - Cursors are scoped to the original request parameters. Use `endCursor` only with the same tool arguments.
 - If `hasNextPage` is `true`, the response is incomplete. Continue with `after=endCursor` before concluding coverage.
 
+### Search Semantics
+
+The three search tools use different Joplin engines:
+
+| Tool | Engine | Wildcard | Emoji / Special Chars |
+|------|--------|----------|----------------------|
+| `search_notebooks` | SQL `LIKE` | `*` → `%` (any position) | Treated as literal characters; **auto-fallback** to `*query*` if exact search returns no results |
+| `search_notes` | SQLite FTS4 | suffix `*` only | Discarded as token separators; **avoid prefixing queries with emoji** — search by keywords |
+| `search_todo_notes` | SQLite FTS4 + filters | suffix `*` only | Same as `search_notes`; filters (`type:todo`, `iscompleted:`) are appended automatically |
+
+**Key differences:**
+- Notebook search is a simple substring match — use `*` for wildcards, or rely on the automatic fallback.
+- Note search is full-text — each word is a token; hyphens, dots, and emoji act as separators, not searchable characters.
+- When searching for a notebook by name, prefer `list_root_notebooks` / `list_sub_notebooks` for hierarchy navigation over `search_notebooks` unless you need a specific name match.
+
 ### 1. get_note_content
 
 Get the complete content of a specific note

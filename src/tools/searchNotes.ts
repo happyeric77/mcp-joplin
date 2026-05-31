@@ -15,7 +15,11 @@ import { exceptionResponse, textResponse } from './toolResponse.js';
 const DEFAULT_FIRST = 20;
 
 const paramsSchema = {
-  query: z.string().describe('Search query string'),
+  query: z
+    .string()
+    .describe(
+      'Search query string. Joplin uses SQLite FTS4 which tokenizes on non-alphanumeric characters including emoji — avoid prefixing queries with emoji or special characters. Search by keywords rather than exact title strings for best results.',
+    ),
   first: firstParamSchema(DEFAULT_FIRST),
   after: afterParamSchema,
 };
@@ -27,7 +31,8 @@ export const registerSearchNotes = (
   server.registerTool(
     'search_notes',
     {
-      description: 'Search one paginated page of notes by query string',
+      description:
+        'Search one paginated page of notes. Uses SQLite FTS4 which tokenizes on non-alphanumeric characters including emoji — search by keywords for best results, not exact title strings.',
       inputSchema: paramsSchema,
     },
     async ({ query, first, after }) => {
